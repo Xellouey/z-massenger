@@ -25,6 +25,7 @@ class _FetchContactState extends State<FetchContact> {
   int inviteContactsCount = 30;
   bool isLoading = true, isSelected = false, isSearch = false;
   TextEditingController searchText = TextEditingController();
+  final invitePeopleCtrl = Get.put(InvitePeopleController());
 
   @override
   void initState() {
@@ -407,29 +408,32 @@ class _FetchContactState extends State<FetchContact> {
                                   contactProvider.invitedContacts[idx];
 
                                   return contactProvider.registeredContacts
-                                      .indexWhere((element) =>
-                                  element.phone ==
-                                      unregister.phone) >=
-                                      0
+                                              .indexWhere((element) =>
+                                                  element.phone ==
+                                                  unregister.phone) >=
+                                          0
                                       ? Container()
                                       : UnRegisterUser(
-                                    image: contactProvider
-                                        .getInitials(unregister.name),
-                                    name: unregister.name,
-                                    /*   onTap: () => contactProvider
+                                          image: contactProvider
+                                              .getInitials(unregister.name),
+                                          name: unregister.name,
+                                          /*   onTap: () => contactProvider
                                                     .onInvitePeople(
                                                         number: user.key)*/
-                                  ).inkWell(onTap: () {
-                                    if (isSelected == true) {
-                                      Get.back(result: {
-                                        "name": unregister.name,
-                                        "number": unregister.phone,
-                                        "photo": contactProvider
-                                            .getInitials(unregister.name)
-                                      });
-                                      setState(() {});
-                                    }
-                                  });
+                                          ).inkWell(onTap: () {
+                                          if (isSelected == true) {
+                                            Get.back(result: {
+                                              "name": unregister.name,
+                                              "number": unregister.phone,
+                                              "photo": contactProvider
+                                                  .getInitials(unregister.name)
+                                            });
+                                            setState(() {});
+                                          } else {
+                                            invitePeopleCtrl.onInvitePeople(
+                                                number: unregister.phone);
+                                          }
+                                        });
                                 })
                           ]))),
             );

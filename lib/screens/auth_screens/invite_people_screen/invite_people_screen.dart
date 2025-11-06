@@ -15,9 +15,6 @@ class InvitePeopleScreen extends StatefulWidget {
 }
 
 class _InvitePeopleScreenState extends State<InvitePeopleScreen> {
-  int inviteContactsCount = 30;
-
-  final invitePeopleCtrl = Get.put(InvitePeopleController());
   @override
   void initState() {
 
@@ -27,87 +24,66 @@ class _InvitePeopleScreenState extends State<InvitePeopleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ContactProvider>(builder: (context, availableContacts, child) {
-
-      /*return GetBuilder<InvitePeopleController>(
-        builder: (invitePeopleCtrl) {
-          return Scaffold(
+    return GetBuilder<InvitePeopleController>(
+        init: InvitePeopleController(),
+        builder: (controller) {
+      return Scaffold(
+          backgroundColor: appCtrl.appTheme.screenBG,
+          appBar: AppBar(
+              centerTitle: true,
+              title: Text(appFonts.invitePeople.tr,
+                  style: AppCss.manropeBold16
+                      .textColor(appCtrl.appTheme.darkText)),
               backgroundColor: appCtrl.appTheme.screenBG,
-              appBar: AppBar(
-                  centerTitle: true,
-                  title: Text(appFonts.invitePeople.tr,
-                      style: AppCss.manropeBold16
-                          .textColor(appCtrl.appTheme.darkText)),
-                  backgroundColor: appCtrl.appTheme.screenBG,
-                  elevation: 0,
-                  automaticallyImplyLeading: false,
-                  actions: [
-                    Text(appFonts.skip.tr,
-                            style: AppCss.manropeBold14
-                                .textColor(appCtrl.appTheme.greyText)).inkWell(onTap: () {
-                      appCtrl.storage.write("skip", true);
-                      Get.offAllNamed(routeName.dashboard,arguments: invitePeopleCtrl.pref);
-                      setState(() {
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              actions: [
+                Text(appFonts.skip.tr,
+                        style: AppCss.manropeBold14
+                            .textColor(appCtrl.appTheme.greyText))
+                    .inkWell(onTap: controller.onSkip)
+                    .alignment(Alignment.center)
+                    .paddingSymmetric(horizontal: Insets.i20)
+              ]),
+          body: Consumer<ContactProvider>(
+              builder: (context, availableContacts, child) {
+            final unregistered = availableContacts.invitedContacts;
 
-                      });
-                    })
-                        .alignment(Alignment.center)
-                        .paddingSymmetric(horizontal: Insets.i20)
-                  ]),
-              body: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Column(children: [
-                    TextFieldCommon(
-                            fillColor: appCtrl.appTheme.white,
-                            hintText: appFonts.searchHere.tr,
-                            prefixIcon: SvgPicture.asset(eSvgAssets.search,
-                                fit: BoxFit.scaleDown))
-                        .decorated(boxShadow: [
-                      BoxShadow(
-                          color: appCtrl.appTheme.borderColor.withOpacity(0.1),
-                          spreadRadius: AppRadius.r2,
-                          blurRadius: AppRadius.r3)
-                    ]).paddingOnly(top: Insets.i20, bottom: Insets.i30),
-                    Column(
-                      children: [
-                        availableContacts
-                            .allContacts!.isNotEmpty ?
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(0),
-                          itemCount: inviteContactsCount >=
-                              availableContacts
-                                  .allContacts!.length
-                              ? availableContacts
-                              .allContacts!.length
-                              : inviteContactsCount,
-                          itemBuilder: (context, idx) {
-                            MapEntry user = availableContacts
-                                .allContacts!.entries
-                                .elementAt(idx);
-                            String phone = user.key;
-                            return availableContacts
-                                .oldPhoneData
-                                .indexWhere((element) =>
-                            element.phone == phone) >=
-                                0
-                                ? const CommonLoader()
-                                : UnRegisterUser(
-                              image:  availableContacts
-                                  .getInitials(user.value),
-                                name: user.value,
-                                onTap: () => invitePeopleCtrl.onInvitePeople(
-                                    number: user.key)
-                            );
-                          },
-                        ) : const CommonLoader()
-                      ]
-                    )
-                  ]).paddingSymmetric(horizontal: Insets.i20)));
-        }
-      );*/
-      return Container();
+            if (availableContacts.isLoading && unregistered.isEmpty) {
+              return const CommonLoader();
+            }
+
+            return RefreshIndicator(
+                onRefresh: () async {
+                  return availableContacts
+                      .fetchContacts(appCtrl.user["phone"]);
+                },
+                child: unregistered.isEmpty
+                    ? ListView(
+                        children: [
+                          SizedBox(
+                              height: MediaQuery.of(context).size.height / 2,
+                              child: Center(
+                                  child: Text(appFonts.contactDataNotAvailable.tr,
+                                      style: AppCss.manropeMedium14.textColor(
+                                          appCtrl.appTheme.greyText))))
+                        ],
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: Insets.i20, vertical: Insets.i20),
+                        itemCount: unregistered.length,
+                        itemBuilder: (context, idx) {
+                          final unregister = unregistered[idx];
+                          return UnRegisterUser(
+                            image: availableContacts
+                                .getInitials(unregister.name),
+                            name: unregister.name,
+                            onTap: () => controller.onInvitePeople(
+                                number: unregister.phone),
+                          );
+                        }));
+          }));
     });
   }
 }
