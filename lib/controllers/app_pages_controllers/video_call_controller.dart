@@ -242,6 +242,7 @@ class VideoCallController extends GetxController {
             WakelockPlus.enable();
             // Один update вместо двух + Get.forceAppUpdate
             update();
+            }
           });
         },
         onUserJoined:
@@ -325,6 +326,7 @@ class VideoCallController extends GetxController {
             WakelockPlus.enable();
             // Один update вместо множественных
             update();
+            }
           });
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
@@ -337,7 +339,7 @@ class VideoCallController extends GetxController {
             remoteUid = 0;
             users.remove(remoteUid);
             update();
-          if (isAlreadyEndedCall == false) {
+            if (isAlreadyEndedCall == false) {
             FirebaseFirestore.instance
                 .collection(collectionName.calls)
                 .doc(call!.callerId)
@@ -373,6 +375,7 @@ class VideoCallController extends GetxController {
                 'ended': DateTime.now(),
               }, SetOptions(merge: true));
             }
+            }
           });
         },
         onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
@@ -402,7 +405,7 @@ class VideoCallController extends GetxController {
 
             _dispose();
             update();
-          if (isAlreadyEndedCall == false) {
+            if (isAlreadyEndedCall == false) {
             FirebaseFirestore.instance
                 .collection(collectionName.calls)
                 .doc(call!.callerId)
@@ -448,6 +451,7 @@ class VideoCallController extends GetxController {
             WakelockPlus.disable();
             Get.back();
             update();
+            }
           });
         },
       ),
