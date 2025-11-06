@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "802822444297",
+    "project_id": "z-messenger-bc7fd",
+    "storage_bucket": "z-messenger-bc7fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:802822444297:android:2ed6be3ce2d27268672fd8",
+        "android_client_info": {
+          "package_name": "com.webiots.chatzy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0BxptiYnC9Mhx99nDygAhDfCq_kVnlxM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

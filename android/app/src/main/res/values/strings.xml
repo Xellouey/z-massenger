@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">com.webiots.chatzy</string>
+
+  <!-- Updated to match the channel ID created in notification_controller.dart:451 -->
+  <string name="default_notification_channel_id" translatable="false">high_importance_channel</string>
+</resources>
+
