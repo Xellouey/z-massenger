@@ -411,11 +411,12 @@ class CustomNotificationController extends GetxController {
 
   // Initialize notifications
   Future<void> initNotification() async {
-    debugPrint('initNotification');
+    debugPrint('🔔 ========== INITIALIZING NOTIFICATIONS ==========');
 
     // Create channels first
     await _createNotificationChannels();
     _channelsInitialized = true;
+    debugPrint('✅ Notification channels created');
 
     // Set foreground notification options
     await FirebaseMessaging.instance
@@ -424,6 +425,7 @@ class CustomNotificationController extends GetxController {
         badge: true,
         sound: true
     );
+    debugPrint('✅ Foreground notification options set');
 
     // Request permissions
     if (Platform.isIOS) {
@@ -443,8 +445,8 @@ class CustomNotificationController extends GetxController {
       );
       debugPrint(result.authorizationStatus == AuthorizationStatus.authorized &&
           iosResult == true
-          ? 'FCM: iOS User granted permission'
-          : 'FCM: iOS User declined permission');
+          ? '✅ FCM: iOS User granted permission'
+          : '⚠️ FCM: iOS User declined permission');
     } else if (Platform.isAndroid) {
       final result = await firebaseMessaging.requestPermission(
         alert: true,
@@ -452,32 +454,57 @@ class CustomNotificationController extends GetxController {
         provisional: true,
         sound: true,
       );
-      debugPrint('Permission result: ${result.authorizationStatus}');
+      debugPrint('📱 Android Permission result: ${result.authorizationStatus}');
+      if (result.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('✅ Android notification permissions granted');
+      } else {
+        debugPrint('⚠️ Android notification permissions NOT granted: ${result.authorizationStatus}');
+      }
+    }
+
+    // Get and log FCM token
+    try {
+      final token = await firebaseMessaging.getToken();
+      debugPrint('🔑 FCM Token: $token');
+      if (token != null) {
+        debugPrint('✅ FCM Token obtained successfully');
+      } else {
+        debugPrint('⚠️ FCM Token is null - this may prevent notifications!');
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting FCM token: $e');
     }
 
     // Initialize local notifications
     await _initLocalNotification();
+    debugPrint('✅ Local notifications initialized');
 
     // Handle terminated app state
     FirebaseMessaging.instance
         .getInitialMessage()
         .then((RemoteMessage? message) {
       if (message != null) {
-        debugPrint('Terminated state message: ${message.data}');
+        debugPrint('📨 Terminated state message: ${message.data}');
         handleMessage(message);
+      } else {
+        debugPrint('ℹ️ No initial message (app not opened from notification)');
       }
     });
 
     // Setup listeners
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Foreground message received: ${message.data}');
+      debugPrint('📨 FOREGROUND message received:');
+      debugPrint('   Data: ${message.data}');
+      debugPrint('   Notification: ${message.notification?.title ?? "null"}');
       handleMessage(message);
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('Background message tapped: ${message.data}');
+      debugPrint('📨 BACKGROUND message tapped: ${message.data}');
       handleMessage(message);
     });
+
+    debugPrint('✅ ========== NOTIFICATIONS INITIALIZED ==========');
   }
 
   /// Create Android notification channels
@@ -673,64 +700,84 @@ class CustomNotificationController extends GetxController {
     if (!_channelsInitialized ||
         messageChannel == null ||
         callChannel == null) {
-      debugPrint('Channels not initialized, reinitializing...');
+      debugPrint('📱 Channels not initialized, reinitializing...');
       await _createNotificationChannels();
       _channelsInitialized = true;
       if (messageChannel == null || callChannel == null) {
-        debugPrint('Error: Failed to initialize channels');
+        debugPrint('❌ Error: Failed to initialize channels');
         return;
       }
     }
 
     final notification = message.notification;
     final notificationData = message.data;
-    final title =
-        notification?.title ?? notificationData['name'] ?? 'New Notification';
+
+    // Extract title and body from either notification or data payload
+    final title = notification?.title ??
+        notificationData['title'] ??
+        notificationData['name'] ??
+        'New Notification';
     final body = notification?.body ??
         notificationData['body'] ??
+        notificationData['msg'] ??
         'You have a new message';
+
     final isCall = notificationData['title'] == 'Incoming Video Call...' ||
         notificationData['title'] == 'Incoming Audio Call...';
 
     final channel = isCall ? callChannel! : messageChannel!;
     final soundName = isCall ? 'callsound' : 'message';
 
-    debugPrint(
-        'Showing notification: title=$title, body=$body, isCall=$isCall, sound=$soundName, channel=${channel.id}');
+    debugPrint('📱 Showing notification:');
+    debugPrint('   Title: $title');
+    debugPrint('   Body: $body');
+    debugPrint('   IsCall: $isCall');
+    debugPrint('   Sound: $soundName');
+    debugPrint('   Channel: ${channel.id}');
+    debugPrint('   Has notification object: ${notification != null}');
 
-    if (notification != null) {
-      final androidDetails = AndroidNotificationDetails(
-        channel.id,
-        channel.name,
-        channelDescription: channel.description,
-        icon: '@mipmap/ic_launcher',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound(soundName),
-        fullScreenIntent: isCall,
-      );
+    // IMPORTANT: Show notification for BOTH notification and data-only payloads
+    final androidDetails = AndroidNotificationDetails(
+      channel.id,
+      channel.name,
+      channelDescription: channel.description,
+      icon: '@mipmap/ic_launcher',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound(soundName),
+      fullScreenIntent: isCall,
+      enableVibration: true,
+      enableLights: true,
+    );
 
-      final iosDetails = DarwinNotificationDetails(
-        sound: soundName,
-        presentSound: true,
-        presentAlert: true,
-        presentBadge: true,
-      );
+    final iosDetails = DarwinNotificationDetails(
+      sound: soundName,
+      presentSound: true,
+      presentAlert: true,
+      presentBadge: true,
+    );
 
-      final notificationDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
+    final notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    try {
+      // Use a unique ID based on timestamp or notification hashCode
+      final notificationId = notification?.hashCode ??
+          DateTime.now().millisecondsSinceEpoch.toInt();
 
       await _flutterLocalNotificationsPlugin.show(
-        notification.hashCode,
+        notificationId,
         title,
         body,
         notificationDetails,
         payload: jsonEncode(notificationData),
       );
-      debugPrint('Notification shown successfully');
+      debugPrint('✅ Notification shown successfully with ID: $notificationId');
+    } catch (e) {
+      debugPrint('❌ Error showing notification: $e');
     }
   }
 

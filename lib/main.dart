@@ -245,18 +245,33 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       ),
     );
   }
+
+  log('🔔 Background notification received: ${message.data}');
+
+  // Determine if this is a call notification
+  final isCall = message.data['title'] == 'Incoming Audio Call...' ||
+      message.data['title'] == 'Incoming Video Call...';
+
+  // Use the correct channel ID that matches notification_controller.dart and strings.xml
+  final channelId = isCall ? 'call_channel' : 'high_importance_channel';
+  final soundName = isCall ? 'callsound' : 'message';
+
+  log('🔔 Using channel: $channelId, sound: $soundName');
+
   AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'Astrologically Partner local notifications',
-    'High Importance Notifications for Astrologically',
-    description: 'This channel is used for important notifications.',
+    channelId,
+    isCall ? 'Call Notifications' : 'High Importance Notifications',
+    description: isCall
+        ? 'This channel is used for call notifications.'
+        : 'This channel is used for message notifications.',
     playSound: true,
-    importance: Importance.high,
-    sound:
-        (message.data['title'] != 'Incoming Audio Call...' ||
-            message.data['title'] != 'Incoming Video Call...')
-        ? RawResourceAndroidNotificationSound('message')
-        : RawResourceAndroidNotificationSound('callsound'),
+    importance: Importance.max,
+    sound: RawResourceAndroidNotificationSound(soundName),
+    enableVibration: true,
+    enableLights: true,
+    showBadge: true,
   );
+
   final notifications = CustomNotificationController();
   await notifications.initNotification();
   notifications.showNotification(message);
