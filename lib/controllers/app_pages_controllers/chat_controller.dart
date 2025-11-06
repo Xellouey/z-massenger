@@ -40,6 +40,7 @@ class ChatController extends GetxController {
   List<QueryDocumentSnapshot<Map<String, dynamic>>> allMessages = [];
   List<DateTimeChip> localMessage = [];
   StreamSubscription? messageSub;
+  StreamSubscription? userDataSub;
   List message = [];
   dynamic pData, allData, userData;
   List<File> selectedImages = [];
@@ -255,23 +256,18 @@ class ChatController extends GetxController {
       update();
     }
     seenMessage();
-    await FirebaseFirestore.instance
+
+    // Subscribe to real-time updates of user data
+    userDataSub = FirebaseFirestore.instance
         .collection(collectionName.users)
         .doc(pId)
-        .get()
-        .then((value) {
-      pData = value.data();
-      log("pData:::$pData");
-      update();
-    });
-    await FirebaseFirestore.instance
-        .collection(collectionName.users)
-        .doc(pId)
-        .get()
-        .then((value) {
-      pData = value.data();
-      log("pData:::$pData");
-      update();
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        pData = snapshot.data();
+        log("pData updated (real-time):::$pData");
+        update();
+      }
     });
 
     if (allData != null) {
@@ -1868,5 +1864,14 @@ class ChatController extends GetxController {
       },
     );
     update();
+  }
+
+  @override
+  void onClose() {
+    // Cancel subscriptions to prevent memory leaks
+    messageSub?.cancel();
+    userDataSub?.cancel();
+    log("ChatController: Subscriptions cancelled");
+    super.onClose();
   }
 }
