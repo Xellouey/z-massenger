@@ -32,6 +32,8 @@ class AudioCallController extends GetxController {
   AudioCache audioCache = AudioCache();
   int? remoteUidValue;
   bool isStart = false;
+  bool _hasClosedCallView = false;
+  bool _isEnding = false;
 
   // ignore: close_sinks
   StreamController<int>? streamController;
@@ -295,6 +297,22 @@ class AudioCallController extends GetxController {
     stopTimer();
   }
 
+  void _closeCallView(BuildContext? context) {
+    if (_hasClosedCallView) return;
+
+    final navigatorContext = context ?? Get.context;
+    if (navigatorContext != null && Navigator.of(navigatorContext).canPop()) {
+      Navigator.of(navigatorContext).pop();
+      _hasClosedCallView = true;
+      return;
+    }
+
+    if (Get.isOverlaysOpen || (Get.key.currentState?.canPop() ?? false)) {
+      Get.back();
+      _hasClosedCallView = true;
+    }
+  }
+
   @override
   void onReady() async {
     // TODO: implement onReady
@@ -324,6 +342,8 @@ class AudioCallController extends GetxController {
 
   //initialise agora
   Future<void> initAgora() async {
+    _isEnding = false;
+    _hasClosedCallView = false;
     var agora = appCtrl.storage.read(session.agoraToken);
     //create the engine
     engine = createAgoraRtcEngine();
@@ -397,6 +417,7 @@ class AudioCallController extends GetxController {
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           remoteUidValue = remoteUid;
+          remoteUId = remoteUid;
           startTimerNow();
           update();
 
@@ -439,7 +460,7 @@ class AudioCallController extends GetxController {
           Get.forceAppUpdate();
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
-            UserOfflineReasonType reason) {
+            UserOfflineReasonType reason) async {
           debugPrint("remote user $remoteUid left channel");
           remoteUid = 0;
 
@@ -447,6 +468,12 @@ class AudioCallController extends GetxController {
           _infoStrings.add(info);
           _users.remove(remoteUid);
           update();
+
+          if (Get.context != null && !isAlreadyEnded) {
+            isAlreadyEnded = true;
+            await onCallEnd(Get.context!);
+            return;
+          }
 
           if (isAlreadyEnded == false) {
             FirebaseFirestore.instance
@@ -500,7 +527,7 @@ class AudioCallController extends GetxController {
             }, SetOptions(merge: true));
           }
           WakelockPlus.disable();
-          Get.back();
+          _closeCallView(Get.context);
           update();
         },
       ),
@@ -603,8 +630,16 @@ class AudioCallController extends GetxController {
 
   //end call
   void onCallEnd(BuildContext context) async {
+    if (_isEnding) {
+      _closeCallView(context);
+      return;
+    }
+
+    _isEnding = true;
+    isAlreadyEnded = true;
     log("endCall1");
-    _dispose();
+    await _dispose();
+    _closeCallView(context);
     DateTime now = DateTime.now();
     if (remoteUId != null) {
       FirebaseFirestore.instance
@@ -669,5 +704,6 @@ class AudioCallController extends GetxController {
     log("endCall");
     WakelockPlus.disable();
     stopTimer();
+    _closeCallView(context);
   }
 }
