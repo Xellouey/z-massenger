@@ -1,23 +1,21 @@
 import 'dart:developer';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:get/get_state_manager/src/simple/get_state.dart';
 
 import '../../../config.dart';
 import '../../../controllers/app_pages_controllers/video_call_controller.dart';
 
 class VideoCallClass {
-  Widget buildNormalVideoUI() {
-    return GetBuilder<VideoCallController>(builder: (videoCtrl) {
-      log('buildNormalVideoUI: remoteUId=${videoCtrl.remoteUId}, users=${videoCtrl.users}, localUserJoined=${videoCtrl.localUserJoined}');
-      return SizedBox(
-        height: Get.height,
-        width: Get.width,
-        child: videoCtrl.localUserJoined
-            ? buildJoinUserUI(videoCtrl)
-            : Container(color: appCtrl.appTheme.primary), // Fallback UI
-      );
-    });
+  // Убираем GetBuilder - будем использовать один внешний GetBuilder
+  Widget buildNormalVideoUI(VideoCallController videoCtrl) {
+    log('buildNormalVideoUI: remoteUId=${videoCtrl.remoteUId}, users=${videoCtrl.users}, localUserJoined=${videoCtrl.localUserJoined}');
+    return SizedBox(
+      height: Get.height,
+      width: Get.width,
+      child: videoCtrl.localUserJoined
+          ? buildJoinUserUI(videoCtrl)
+          : Container(color: appCtrl.appTheme.primary), // Fallback UI
+    );
   }
 
   Widget buildJoinUserUI(VideoCallController? videoCtrl) {
@@ -26,13 +24,13 @@ class VideoCallClass {
     switch (views.length) {
       case 1: // Only local user
         return Column(
-          children: [_videoView(views[0])],
+          children: [_videoView(views[0], videoCtrl!, true)],
         );
       case 2: // Local + one remote user
         return Stack(
           children: [
             // Remote user (full screen)
-            _expandedVideoRow([views[1]]),
+            _expandedVideoRow([views[1]], videoCtrl!, false),
             // Local user (small overlay)
             Align(
               alignment: Alignment.topRight,
@@ -45,7 +43,7 @@ class VideoCallClass {
                     Insets.i15, Insets.i40, Insets.i10, Insets.i15),
                 width: Sizes.s110,
                 height: Sizes.s140,
-                child: _expandedVideoRow([views[0]]),
+                child: _expandedVideoRow([views[0]], videoCtrl, true),
               ),
             ),
           ],
@@ -53,15 +51,15 @@ class VideoCallClass {
       case 3: // Local + two remote users
         return Column(
           children: [
-            _expandedVideoRow(views.sublist(0, 2)),
-            _expandedVideoRow(views.sublist(2, 3)),
+            _expandedVideoRow(views.sublist(0, 2), videoCtrl!, false),
+            _expandedVideoRow(views.sublist(2, 3), videoCtrl, true),
           ],
         );
       case 4: // Local + three remote users
         return Column(
           children: [
-            _expandedVideoRow(views.sublist(0, 2)),
-            _expandedVideoRow(views.sublist(2, 4)),
+            _expandedVideoRow(views.sublist(0, 2), videoCtrl!, false),
+            _expandedVideoRow(views.sublist(2, 4), videoCtrl, false),
           ],
         );
       default:
@@ -98,22 +96,21 @@ class VideoCallClass {
     return list;
   }
 
-  Widget _videoView(Widget view) {
-    return GetBuilder<VideoCallController>(builder: (videoCtrl) {
-      return Expanded(
-        child: Container(
-          child: videoCtrl.isCameraShow || view != _getRenderViews(videoCtrl)[0]
-              ? view
-              : Container(
-              color: appCtrl
-                  .appTheme.primary), // Hide local video if camera off
-        ),
-      );
-    });
+  Widget _videoView(Widget view, VideoCallController videoCtrl, bool isLocal) {
+    // Убираем GetBuilder и исправляем логику проверки камеры
+    return Expanded(
+      child: Container(
+        child: (!isLocal || videoCtrl.isCameraShow)
+            ? view
+            : Container(
+            color: appCtrl
+                .appTheme.primary), // Hide local video if camera off
+      ),
+    );
   }
 
-  Widget _expandedVideoRow(List<Widget> views) {
-    final wrappedViews = views.map(_videoView).toList();
+  Widget _expandedVideoRow(List<Widget> views, VideoCallController videoCtrl, bool isLocal) {
+    final wrappedViews = views.map((view) => _videoView(view, videoCtrl, isLocal)).toList();
     return Row(children: wrappedViews);
   }
 }
