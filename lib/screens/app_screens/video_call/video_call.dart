@@ -36,10 +36,6 @@ class _VideoCallState extends State<VideoCall>
         .doc(videoCallCtrl.call!.timestamp.toString())
         .snapshots();
 
-    // Initialize Agora
-    videoCallCtrl.initAgora();
-    videoCallCtrl.update();
-
     // Initialize animation
     _controller = AnimationController(
       value: 1.0,
@@ -51,6 +47,28 @@ class _VideoCallState extends State<VideoCall>
       reverseCurve: Curves.easeOutQuad,
       parent: _controller,
     );
+
+    // Initialize Agora AFTER the first frame is built
+    // Это гарантирует, что build() завершится до начала async операций
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeAgora();
+    });
+  }
+
+  // Асинхронная инициализация Agora
+  Future<void> _initializeAgora() async {
+    try {
+      await videoCallCtrl.initAgora();
+      videoCallCtrl.update();
+    } catch (e) {
+      debugPrint("Error initializing Agora: $e");
+      // Показываем ошибку пользователю
+      Get.snackbar(
+        'Connection Error',
+        'Failed to initialize video call. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   @override
@@ -124,7 +142,7 @@ class _VideoCallState extends State<VideoCall>
                     body: Stack(
                       children: [
                         videoCallCtrl.isCameraShow
-                            ? VideoCallClass().buildNormalVideoUI()
+                            ? VideoCallClass().buildNormalVideoUI(videoCallCtrl)
                             : Container(
                           color: appCtrl.appTheme.primary,
                           height: MediaQuery.of(context).size.height,

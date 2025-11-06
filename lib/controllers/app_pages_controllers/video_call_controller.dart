@@ -33,6 +33,10 @@ class VideoCallController extends GetxController {
   String? token;
   bool isStart = false;
 
+  // Защита от повторной инициализации
+  bool _isInitialized = false;
+  bool _isDisposed = false;
+
   // ignore: close_sinks
   StreamController<int>? streamController;
   String hoursStr = '00';
@@ -99,7 +103,6 @@ class VideoCallController extends GetxController {
 
     isStart = true;
     update();
-    Get.forceAppUpdate();
   }
 
   Future<bool> onWillPopNEw() {
@@ -108,44 +111,64 @@ class VideoCallController extends GetxController {
 
   //initialise agora
   Future<void> initAgora() async {
-    var agoraData = appCtrl.storage.read(session.agoraToken);
-    log("token :: ${call!.agoraToken}");
-    log("token :: ${call!.channelId}");
-    //create the engine
-    engine = createAgoraRtcEngine();
-    await engine.initialize(RtcEngineContext(
-      appId: agoraData["agoraAppId"],
-      channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-    ));
-    update();
-    engine.registerEventHandler(
+    // Защита от повторной инициализации
+    if (_isInitialized) {
+      log("Agora already initialized, skipping...");
+      return;
+    }
+
+    if (_isDisposed) {
+      log("Controller disposed, cannot initialize");
+      return;
+    }
+
+    try {
+      var agoraData = appCtrl.storage.read(session.agoraToken);
+      log("token :: ${call!.agoraToken}");
+      log("token :: ${call!.channelId}");
+
+      //create the engine
+      engine = createAgoraRtcEngine();
+      await engine.initialize(RtcEngineContext(
+        appId: agoraData["agoraAppId"],
+        channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+      ));
+
+      _isInitialized = true;
+
+      engine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
           debugPrint("local user ;;;${connection.localUid} joined");
-          localUserJoined = true;
-          update();
-          final noti = Get.find<CustomNotificationController>();
 
-          final info =
-              'onJoinChannel: ${noti.callChannel}, uid: ${connection.localUid}';
-          infoStrings.add(info);
-          log("info :info");
-          if (call!.receiver != null) {
-            List receiver = call!.receiver!;
-            receiver.asMap().entries.forEach((element) {
-              if (nameList != "") {
-                if (element.value["name"] != element.value["name"]) {
-                  nameList = "$nameList, ${element.value["name"]}";
+          // Используем postFrameCallback для безопасного обновления после build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_isDisposed) return;
+
+            localUserJoined = true;
+            final noti = Get.find<CustomNotificationController>();
+
+            final info =
+                'onJoinChannel: ${noti.callChannel}, uid: ${connection.localUid}';
+            infoStrings.add(info);
+            log("info :info");
+
+            if (call!.receiver != null) {
+              List receiver = call!.receiver!;
+              receiver.asMap().entries.forEach((element) {
+                if (nameList != "") {
+                  if (element.value["name"] != element.value["name"]) {
+                    nameList = "$nameList, ${element.value["name"]}";
+                  }
+                } else {
+                  if (element.value["name"] != userData["name"]) {
+                    nameList = element.value["name"];
+                  }
                 }
-              } else {
-                if (element.value["name"] != userData["name"]) {
-                  nameList = element.value["name"];
-                }
-              }
-            });
-          }
-          if (call!.callerId == userData["id"]) {
-            update();
+              });
+            }
+
+            if (call!.callerId == userData["id"]) {
             FirebaseFirestore.instance
                 .collection(collectionName.calls)
                 .doc(call!.callerId)
@@ -193,7 +216,6 @@ class VideoCallController extends GetxController {
                 }
               });
               log("nameList : $nameList");
-              update();
             } else {
               FirebaseFirestore.instance
                   .collection(collectionName.calls)
@@ -216,28 +238,31 @@ class VideoCallController extends GetxController {
                 call!.receiver != null ? nameList : call!.callerName,
               }, SetOptions(merge: true));
             }
-          }
-          WakelockPlus.enable();
-          //flutterLocalNotificationsPlugin!.cancelAll();
-          update();
-          Get.forceAppUpdate();
+
+            WakelockPlus.enable();
+            // Один update вместо двух + Get.forceAppUpdate
+            update();
+          });
         },
         onUserJoined:
             (RtcConnection connection, int remoteUserId, int elapsed) {
           debugPrint("remote user $remoteUserId joined");
-          remoteUId = remoteUserId;
-          startTimerNow();
-          update();
 
-          final info = 'userJoined: $remoteUserId';
-          infoStrings.add(info);
-          if (users.isEmpty) {
-            users = [remoteUserId];
-          } else {
-            users.add(remoteUserId);
-          }
-          update();
-          debugPrint("remote user $remoteUserId joined");
+          // Используем postFrameCallback для безопасного обновления
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_isDisposed) return;
+
+            remoteUId = remoteUserId;
+            startTimerNow();
+
+            final info = 'userJoined: $remoteUserId';
+            infoStrings.add(info);
+            if (users.isEmpty) {
+              users = [remoteUserId];
+            } else {
+              users.add(remoteUserId);
+            }
+            debugPrint("remote user $remoteUserId joined");
 
           if (userData["id"] == call!.callerId) {
             FirebaseFirestore.instance
@@ -296,17 +321,22 @@ class VideoCallController extends GetxController {
                 "videoCallReceived": FieldValue.increment(1),
               }, SetOptions(merge: true));
             }
-          }
-          WakelockPlus.enable();
-          update();
-          Get.forceAppUpdate();
+
+            WakelockPlus.enable();
+            // Один update вместо множественных
+            update();
+          });
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
           debugPrint("remote user $remoteUid left channel");
-          remoteUid = 0;
-          users.remove(remoteUid);
-          update();
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_isDisposed) return;
+
+            remoteUid = 0;
+            users.remove(remoteUid);
+            update();
           if (isAlreadyEndedCall == false) {
             FirebaseFirestore.instance
                 .collection(collectionName.calls)
@@ -343,7 +373,7 @@ class VideoCallController extends GetxController {
                 'ended': DateTime.now(),
               }, SetOptions(merge: true));
             }
-          }
+          });
         },
         onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
           debugPrint(
@@ -354,18 +384,24 @@ class VideoCallController extends GetxController {
               '[onTokenPrivilegeWillExpire] connection: $err, token: $msg)');
         },
         onFirstRemoteAudioFrame: (connection, userId, elapsed) {
-          final info = 'firstRemoteVideo: $userId';
-          infoStrings.add(info);
-          update();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_isDisposed) return;
+            final info = 'firstRemoteVideo: $userId';
+            infoStrings.add(info);
+            update();
+          });
         },
         onLeaveChannel: (connection, stats) {
-          remoteUId = null;
-          infoStrings.add('onLeaveChannel');
-          stopTimer();
-          users.clear();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_isDisposed) return;
 
-          _dispose();
-          update();
+            remoteUId = null;
+            infoStrings.add('onLeaveChannel');
+            stopTimer();
+            users.clear();
+
+            _dispose();
+            update();
           if (isAlreadyEndedCall == false) {
             FirebaseFirestore.instance
                 .collection(collectionName.calls)
@@ -407,31 +443,35 @@ class VideoCallController extends GetxController {
                 'ended': DateTime.now(),
               }, SetOptions(merge: true));
             }
-          }
-          stopTimer();
-          WakelockPlus.disable();
-          Get.back();
-          update();
+
+            stopTimer();
+            WakelockPlus.disable();
+            Get.back();
+            update();
+          });
         },
       ),
     );
-    update();
-    await engine.enableWebSdkInteroperability(true);
-    await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
 
-    await engine.enableVideo();
-    await engine.startPreview();
+      await engine.enableWebSdkInteroperability(true);
+      await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
 
-    await engine.joinChannel(
-      token: call!.agoraToken!,
-      channelId: channelName!,
-      uid: 0,
-      options: const ChannelMediaOptions(),
-    );
-    update();
+      await engine.enableVideo();
+      await engine.startPreview();
 
-    update();
-    Get.forceAppUpdate();
+      await engine.joinChannel(
+        token: call!.agoraToken!,
+        channelId: channelName!,
+        uid: 0,
+        options: const ChannelMediaOptions(),
+      );
+
+      log("Agora initialized successfully");
+    } catch (e) {
+      log("Error initializing Agora: $e");
+      _isInitialized = false;
+      rethrow;
+    }
   }
 
   //on speaker off on
@@ -455,15 +495,30 @@ class VideoCallController extends GetxController {
   }
 
   @override
+  void onClose() {
+    _isDisposed = true;
+    _dispose();
+    super.onClose();
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     super.dispose();
     _dispose();
   }
 
   Future<void> _dispose() async {
-    await engine.leaveChannel();
-    await engine.release();
-    stopTimer();
+    if (!_isInitialized) return;
+
+    try {
+      await engine.leaveChannel();
+      await engine.release();
+      stopTimer();
+      _isInitialized = false;
+    } catch (e) {
+      log("Error disposing engine: $e");
+    }
   }
 
   //bottom toolbar
