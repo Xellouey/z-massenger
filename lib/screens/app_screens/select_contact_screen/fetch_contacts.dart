@@ -7,7 +7,6 @@ import '../../../controllers/common_controllers/contact_controller.dart' as cn;
 import '../../../controllers/recent_chat_controller.dart';
 import '../../../models/status_model.dart';
 import '../../../widgets/common_loader.dart';
-import '../../auth_screens/invite_people_screen/layouts/un_register_user.dart';
 import 'layouts/list_tile_layout.dart';
 
 class FetchContact extends StatefulWidget {
@@ -22,7 +21,6 @@ class FetchContact extends StatefulWidget {
 
 class _FetchContactState extends State<FetchContact> {
   final scrollController = ScrollController();
-  int inviteContactsCount = 30;
   bool isLoading = true, isSelected = false, isSearch = false;
   TextEditingController searchText = TextEditingController();
   final invitePeopleCtrl = Get.put(InvitePeopleController());
@@ -31,35 +29,12 @@ class _FetchContactState extends State<FetchContact> {
   void initState() {
     var data = Get.arguments;
     isSelected = data ?? false;
-
-    scrollController.addListener(scrollListener);
-
-    // Automatically refresh contacts when screen opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final contactProvider = Provider.of<ContactProvider>(context, listen: false);
-      contactProvider.fetchContacts(appCtrl.user["phone"]);
-    });
-
     setState(() {});
     super.initState();
   }
 
   String? sharedSecret;
   String? privateKey;
-
-  void scrollListener() {
-    if (scrollController.offset >=
-        scrollController.position.maxScrollExtent / 2 &&
-        !scrollController.position.outOfRange) {
-      setStateIfMounted(() {
-        inviteContactsCount = inviteContactsCount + 250;
-      });
-    }
-  }
-
-  void setStateIfMounted(f) {
-    if (mounted) setState(f);
-  }
 
   @override
   void dispose() {
@@ -394,54 +369,55 @@ class _FetchContactState extends State<FetchContact> {
                                       })
                                       : Container();
                                 }),
-                            Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: Insets.i20),
-                                child: Text(appFonts.invitePeople.tr,
-                                    style: AppCss.manropeBold14.textColor(
-                                        appCtrl.appTheme.darkText)))
-                                .paddingOnly(top: Insets.i10),
-                            ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(Insets.i20),
-                                itemCount: inviteContactsCount >=
-                                    (contactProvider
-                                        .invitedContacts.length)
-                                    ? contactProvider.invitedContacts.length
-                                    : inviteContactsCount,
-                                itemBuilder: (context, idx) {
-                                  cn.UnregisterUser unregister =
-                                  contactProvider.invitedContacts[idx];
-
-                                  return contactProvider.registeredContacts
-                                              .indexWhere((element) =>
-                                                  element.phone ==
-                                                  unregister.phone) >=
-                                          0
-                                      ? Container()
-                                      : UnRegisterUser(
-                                          image: contactProvider
-                                              .getInitials(unregister.name),
-                                          name: unregister.name,
-                                          /*   onTap: () => contactProvider
-                                                    .onInvitePeople(
-                                                        number: user.key)*/
-                                          ).inkWell(onTap: () {
-                                          if (isSelected == true) {
-                                            Get.back(result: {
-                                              "name": unregister.name,
-                                              "number": unregister.phone,
-                                              "photo": contactProvider
-                                                  .getInitials(unregister.name)
-                                            });
-                                            setState(() {});
-                                          } else {
-                                            invitePeopleCtrl.onInvitePeople(
-                                                number: unregister.phone);
-                                          }
-                                        });
-                                })
+                            // Invite friends button
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: Insets.i20, vertical: Insets.i20),
+                              decoration: BoxDecoration(
+                                color: appCtrl.appTheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(AppRadius.r12),
+                                border: Border.all(
+                                  color: appCtrl.appTheme.primary.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: Insets.i20, vertical: Insets.i8),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(Insets.i10),
+                                  decoration: BoxDecoration(
+                                    color: appCtrl.appTheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    CupertinoIcons.share,
+                                    color: appCtrl.appTheme.sameWhite,
+                                    size: Sizes.s20,
+                                  ),
+                                ),
+                                title: Text(
+                                  appFonts.invitePeople.tr,
+                                  style: AppCss.manropeSemiBold16
+                                      .textColor(appCtrl.appTheme.darkText),
+                                ),
+                                subtitle: Text(
+                                  "Поделитесь Z Messenger с друзьями",
+                                  style: AppCss.manropeMedium12
+                                      .textColor(appCtrl.appTheme.greyText),
+                                ),
+                                trailing: Icon(
+                                  appCtrl.isRTL || appCtrl.languageVal == "ar"
+                                      ? CupertinoIcons.chevron_left
+                                      : CupertinoIcons.chevron_right,
+                                  color: appCtrl.appTheme.greyText,
+                                  size: Sizes.s20,
+                                ),
+                                onTap: () {
+                                  invitePeopleCtrl.onInvitePeople();
+                                },
+                              ),
+                            )
                           ]))),
             );
           });
