@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:vibration/vibration.dart';
 import 'package:chatzy/screens/app_screens/pick_up_call/pick_up_body.dart';
 import 'package:chatzy/models/call_model.dart';
 import 'package:chatzy/controllers/common_controllers/all_permission_handler.dart';
@@ -26,6 +27,7 @@ class _PickupLayoutState extends State<PickupLayout>
   List<CameraDescription> cameras = [];
   bool isCallEnded = false;
   bool isCameraInitialized = false;
+  bool isVibrating = false;
 
   @override
   void initState() {
@@ -70,10 +72,42 @@ class _PickupLayoutState extends State<PickupLayout>
     }
   }
 
+  Future<void> _startVibration() async {
+    if (isVibrating) return;
+
+    try {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        isVibrating = true;
+        // Vibrate with pattern: 1000ms vibrate, 500ms pause, repeat
+        await Vibration.vibrate(
+          pattern: [0, 1000, 500, 1000, 500, 1000],
+          repeat: 0, // Repeat the pattern
+        );
+        log('Vibration started for incoming call');
+      }
+    } catch (e) {
+      log('Error starting vibration: $e');
+    }
+  }
+
+  Future<void> _stopVibration() async {
+    if (!isVibrating) return;
+
+    try {
+      await Vibration.cancel();
+      isVibrating = false;
+      log('Vibration stopped');
+    } catch (e) {
+      log('Error stopping vibration: $e');
+    }
+  }
+
   @override
   void dispose() {
     controller?.dispose();
     cameraController?.dispose();
+    _stopVibration();
     super.dispose();
   }
 
@@ -91,6 +125,10 @@ class _PickupLayoutState extends State<PickupLayout>
         if (!snapshot.hasData ||
             snapshot.data!.docs.isEmpty ||
             isCallEnded) {
+          // Stop vibration when there's no incoming call
+          if (isVibrating) {
+            _stopVibration();
+          }
           return widget.scaffold;
         }
         final callData =
@@ -99,6 +137,9 @@ class _PickupLayoutState extends State<PickupLayout>
         if (!snapshot.hasData ||
             snapshot.data!.docs.isEmpty ||
             isCallEnded) {
+          if (isVibrating) {
+            _stopVibration();
+          }
           return widget.scaffold;
         }
         if (callData['status'] == 'ended') {
@@ -106,10 +147,19 @@ class _PickupLayoutState extends State<PickupLayout>
             isCallEnded = true;
             cameraController?.dispose();
             cameraController = null;
+            _stopVibration();
             Get.back();
           });
           return widget.scaffold;
         }
+
+        // Start vibration for incoming call
+        if (!isVibrating) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _startVibration();
+          });
+        }
+
         Call call = Call.fromMap(callData);
         if (call.isVideoCall == true &&
             cameraController == null &&
