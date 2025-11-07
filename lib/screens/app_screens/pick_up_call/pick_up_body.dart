@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:vibration/vibration.dart';
 import 'package:chatzy/controllers/recent_chat_controller.dart';
 import 'package:chatzy/models/call_model.dart';
 import 'package:chatzy/widgets/action_icon_common.dart';
@@ -91,6 +92,8 @@ class PickupBody extends StatelessWidget {
                 color: Color(0xFFEE595C), shape: BoxShape.circle),
             child: SvgPicture.asset(eSvgAssets.callEnd),
           ).inkWell(onTap: () async {
+            // Stop vibration when call is declined
+            await Vibration.cancel();
             final videoCtrl = Get.isRegistered<VideoCallController>()
                 ? Get.find<VideoCallController>()
                 : Get.put(VideoCallController());
@@ -111,6 +114,8 @@ class PickupBody extends StatelessWidget {
               ColorFilter.mode(appCtrl.appTheme.sameWhite, BlendMode.srcIn),
             ),
           ).inkWell(onTap: () async {
+            // Stop vibration when call is accepted
+            await Vibration.cancel();
             final permissionCtrl =
             Get.isRegistered<PermissionHandlerController>()
                 ? Get.find<PermissionHandlerController>()
@@ -222,6 +227,8 @@ class PickupBody extends StatelessWidget {
                 children: [
                   SvgPicture.asset(eSvgAssets.back).inkWell(
                     onTap: () async {
+                      // Stop vibration when back button is pressed
+                      await Vibration.cancel();
                       final videoCtrl =
                       Get.isRegistered<VideoCallController>()
                           ? Get.find<VideoCallController>()
@@ -356,6 +363,8 @@ class PickupBody extends StatelessWidget {
                 children: [
                   ActionIconsCommon(
                     onTap: () async {
+                      // Stop vibration when back button is pressed
+                      await Vibration.cancel();
                       final videoCtrl =
                       Get.isRegistered<VideoCallController>()
                           ? Get.find<VideoCallController>()
