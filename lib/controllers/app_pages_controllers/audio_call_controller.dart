@@ -629,7 +629,7 @@ class AudioCallController extends GetxController {
   }
 
   //end call
-  void onCallEnd(BuildContext context) async {
+  Future<void> onCallEnd(BuildContext context) async {
     if (_isEnding) {
       _closeCallView(context);
       return;
