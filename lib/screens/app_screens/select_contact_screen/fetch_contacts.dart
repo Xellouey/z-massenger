@@ -33,6 +33,13 @@ class _FetchContactState extends State<FetchContact> {
     isSelected = data ?? false;
 
     scrollController.addListener(scrollListener);
+
+    // Automatically refresh contacts when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final contactProvider = Provider.of<ContactProvider>(context, listen: false);
+      contactProvider.fetchContacts(appCtrl.user["phone"]);
+    });
+
     setState(() {});
     super.initState();
   }
