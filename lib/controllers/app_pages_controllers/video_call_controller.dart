@@ -374,75 +374,86 @@ class VideoCallController extends GetxController {
             }
 
             if (call!.callerId == userData["id"]) {
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.callerId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'type': 'outGoing',
-              'isVideoCall': call!.isVideoCall,
-              'id': call!.receiverId,
-              'timestamp': call!.timestamp,
-              'dp': call!.receiverPic,
-              'isMuted': false,
-              'receiverId': call!.receiverId,
-              'isJoin': false,
-              'status': 'calling',
-              'started': null,
-              'ended': null,
-              'callerName':
-              call!.receiver != null ? nameList : call!.callerName,
-            }, SetOptions(merge: true));
-            if (call!.receiver != null) {
-              List receiver = call!.receiver!;
-              receiver.asMap().entries.forEach((element) {
-                if (element.value["id"] != userData["id"]) {
-                  FirebaseFirestore.instance
-                      .collection(collectionName.calls)
-                      .doc(element.value["id"])
-                      .collection(collectionName.collectionCallHistory)
-                      .doc(call!.timestamp.toString())
-                      .set({
-                    'type': 'inComing',
-                    'isVideoCall': call!.isVideoCall,
-                    'id': call!.callerId,
-                    'timestamp': call!.timestamp,
-                    'dp': call!.callerPic,
-                    'isMuted': false,
-                    'receiverId': element.value["id"],
-                    'isJoin': true,
-                    'status': 'missedCall',
-                    'started': null,
-                    'ended': null,
-                    'callerName':
-                    call!.receiver != null ? nameList : call!.callerName,
-                  }, SetOptions(merge: true));
-                }
-              });
-              log("nameList : $nameList");
-            } else {
+            // Собираем все Firestore операции для параллельного выполнения
+            List<Future> firestoreOperations = [
               FirebaseFirestore.instance
                   .collection(collectionName.calls)
-                  .doc(call!.receiverId)
+                  .doc(call!.callerId)
                   .collection(collectionName.collectionCallHistory)
                   .doc(call!.timestamp.toString())
                   .set({
-                'type': 'inComing',
+                'type': 'outGoing',
                 'isVideoCall': call!.isVideoCall,
-                'id': call!.callerId,
+                'id': call!.receiverId,
                 'timestamp': call!.timestamp,
-                'dp': call!.callerPic,
+                'dp': call!.receiverPic,
                 'isMuted': false,
                 'receiverId': call!.receiverId,
-                'isJoin': true,
-                'status': 'missedCall',
+                'isJoin': false,
+                'status': 'calling',
                 'started': null,
                 'ended': null,
                 'callerName':
                 call!.receiver != null ? nameList : call!.callerName,
-              }, SetOptions(merge: true));
+              }, SetOptions(merge: true)),
+            ];
+
+            if (call!.receiver != null) {
+              List receiver = call!.receiver!;
+              receiver.asMap().entries.forEach((element) {
+                if (element.value["id"] != userData["id"]) {
+                  firestoreOperations.add(
+                    FirebaseFirestore.instance
+                        .collection(collectionName.calls)
+                        .doc(element.value["id"])
+                        .collection(collectionName.collectionCallHistory)
+                        .doc(call!.timestamp.toString())
+                        .set({
+                      'type': 'inComing',
+                      'isVideoCall': call!.isVideoCall,
+                      'id': call!.callerId,
+                      'timestamp': call!.timestamp,
+                      'dp': call!.callerPic,
+                      'isMuted': false,
+                      'receiverId': element.value["id"],
+                      'isJoin': true,
+                      'status': 'missedCall',
+                      'started': null,
+                      'ended': null,
+                      'callerName':
+                      call!.receiver != null ? nameList : call!.callerName,
+                    }, SetOptions(merge: true)),
+                  );
+                }
+              });
+              log("nameList : $nameList");
+            } else {
+              firestoreOperations.add(
+                FirebaseFirestore.instance
+                    .collection(collectionName.calls)
+                    .doc(call!.receiverId)
+                    .collection(collectionName.collectionCallHistory)
+                    .doc(call!.timestamp.toString())
+                    .set({
+                  'type': 'inComing',
+                  'isVideoCall': call!.isVideoCall,
+                  'id': call!.callerId,
+                  'timestamp': call!.timestamp,
+                  'dp': call!.callerPic,
+                  'isMuted': false,
+                  'receiverId': call!.receiverId,
+                  'isJoin': true,
+                  'status': 'missedCall',
+                  'started': null,
+                  'ended': null,
+                  'callerName':
+                  call!.receiver != null ? nameList : call!.callerName,
+                }, SetOptions(merge: true)),
+              );
             }
+
+            // Выполняем все операции параллельно
+            Future.wait(firestoreOperations);
 
             WakelockPlus.enable();
             // Один update вместо двух + Get.forceAppUpdate
@@ -471,62 +482,75 @@ class VideoCallController extends GetxController {
             debugPrint("remote user $remoteUserId joined");
 
           if (userData["id"] == call!.callerId) {
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.callerId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'started': DateTime.now(),
-              'status': 'pickedUp',
-              'isJoin': true,
-            }, SetOptions(merge: true));
-
-            FirebaseFirestore.instance
-                .collection("calls")
-                .doc(call!.callerId)
-                .set({
-              "videoCallMade": FieldValue.increment(1),
-            }, SetOptions(merge: true));
-
-            if (call!.receiver != null) {
-              List receiver = call!.receiver!;
-              receiver.asMap().entries.forEach((element) {
-                if (element.value["id"] != userData["id"]) {
-                  FirebaseFirestore.instance
-                      .collection(collectionName.calls)
-                      .doc(element.value["id"])
-                      .collection(collectionName.collectionCallHistory)
-                      .doc(call!.timestamp.toString())
-                      .set({
-                    'started': DateTime.now(),
-                    'status': 'pickedUp',
-                  }, SetOptions(merge: true));
-                  FirebaseFirestore.instance
-                      .collection("calls")
-                      .doc(element.value["id"])
-                      .set({
-                    "videoCallReceived": FieldValue.increment(1),
-                  }, SetOptions(merge: true));
-                }
-              });
-            } else {
+            // Собираем все Firestore операции для параллельного выполнения
+            List<Future> firestoreOperations = [
               FirebaseFirestore.instance
                   .collection(collectionName.calls)
-                  .doc(call!.receiverId)
+                  .doc(call!.callerId)
                   .collection(collectionName.collectionCallHistory)
                   .doc(call!.timestamp.toString())
                   .set({
                 'started': DateTime.now(),
                 'status': 'pickedUp',
-              }, SetOptions(merge: true));
+                'isJoin': true,
+              }, SetOptions(merge: true)),
               FirebaseFirestore.instance
-                  .collection(collectionName.calls)
-                  .doc(call!.receiverId)
+                  .collection("calls")
+                  .doc(call!.callerId)
                   .set({
-                "videoCallReceived": FieldValue.increment(1),
-              }, SetOptions(merge: true));
+                "videoCallMade": FieldValue.increment(1),
+              }, SetOptions(merge: true)),
+            ];
+
+            if (call!.receiver != null) {
+              List receiver = call!.receiver!;
+              receiver.asMap().entries.forEach((element) {
+                if (element.value["id"] != userData["id"]) {
+                  firestoreOperations.add(
+                    FirebaseFirestore.instance
+                        .collection(collectionName.calls)
+                        .doc(element.value["id"])
+                        .collection(collectionName.collectionCallHistory)
+                        .doc(call!.timestamp.toString())
+                        .set({
+                      'started': DateTime.now(),
+                      'status': 'pickedUp',
+                    }, SetOptions(merge: true)),
+                  );
+                  firestoreOperations.add(
+                    FirebaseFirestore.instance
+                        .collection("calls")
+                        .doc(element.value["id"])
+                        .set({
+                      "videoCallReceived": FieldValue.increment(1),
+                    }, SetOptions(merge: true)),
+                  );
+                }
+              });
+            } else {
+              firestoreOperations.add(
+                FirebaseFirestore.instance
+                    .collection(collectionName.calls)
+                    .doc(call!.receiverId)
+                    .collection(collectionName.collectionCallHistory)
+                    .doc(call!.timestamp.toString())
+                    .set({
+                  'started': DateTime.now(),
+                  'status': 'pickedUp',
+                }, SetOptions(merge: true)),
+              );
+              firestoreOperations.add(
+                FirebaseFirestore.instance
+                    .collection(collectionName.calls)
+                    .doc(call!.receiverId)
+                    .set({
+                  "videoCallReceived": FieldValue.increment(1),
+                }, SetOptions(merge: true)),
+              );
             }
+
+            // Выполняем все операции параллельно
+            Future.wait(firestoreOperations);
 
             WakelockPlus.enable();
             // Один update вместо множественных
@@ -677,7 +701,13 @@ class VideoCallController extends GetxController {
         token: call!.agoraToken!,
         channelId: channelName!,
         uid: 0,
-        options: const ChannelMediaOptions(),
+        options: const ChannelMediaOptions(
+          autoSubscribeAudio: true,
+          autoSubscribeVideo: true,
+          publishMicrophoneTrack: true,
+          publishCameraTrack: true,
+          clientRoleType: ClientRoleType.clientRoleBroadcaster,
+        ),
       );
 
       log("Agora initialized successfully");

@@ -37,7 +37,12 @@ class _AudioCallState extends State<AudioCall>
         .doc(audioCallCtrl.call!.timestamp.toString())
         .snapshots();
     audioCallCtrl.update();
-    audioCallCtrl.initAgora();
+
+    // Initialize Agora AFTER the first frame is built to prevent UI blocking
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeAgora();
+    });
+
     audioCallCtrl.onReady();
 
     children = [
@@ -75,6 +80,24 @@ class _AudioCallState extends State<AudioCall>
       parent: _controller,
     );
     setState(() {});
+  }
+
+  // Асинхронная инициализация Agora
+  Future<void> _initializeAgora() async {
+    try {
+      await audioCallCtrl.initAgora();
+      if (mounted) {
+        audioCallCtrl.update();
+      }
+    } catch (e) {
+      debugPrint("Error initializing Agora: $e");
+      // Показываем ошибку пользователю
+      Get.snackbar(
+        'Connection Error',
+        'Failed to initialize audio call. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   @override
