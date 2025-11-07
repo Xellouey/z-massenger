@@ -363,48 +363,51 @@ class AudioCallController extends GetxController {
           log("userData['id']::${userData["id"]}");
           if (call!.callerId == userData["id"]) {
             update();
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.callerId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'type': 'OUTGOING',
-              'isVideoCall': call!.isVideoCall,
-              'id': call!.receiverId,
-              'timestamp': call!.timestamp,
-              'dp': call!.receiverPic,
-              'isMuted': false,
-              'receiverId': call!.receiverId,
-              'isJoin': false,
-              'status': 'calling',
-              'started': null,
-              "isGroup": call!.isGroup,
-              "groupName": call!.groupName,
-              'ended': null,
-              'callerName': call!.receiverName,
-            }, SetOptions(merge: true));
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.receiverId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'type': 'INCOMING',
-              'isVideoCall': call!.isVideoCall,
-              'id': call!.callerId,
-              'timestamp': call!.timestamp,
-              'dp': call!.callerPic,
-              'isMuted': false,
-              'receiverId': call!.receiverId,
-              'isJoin': true,
-              'status': 'missedCall',
-              "isGroup": call!.isGroup,
-              "groupName": call!.groupName,
-              'started': null,
-              'ended': null,
-              'callerName': call!.callerName,
-            }, SetOptions(merge: true));
+            // Параллельные Firestore записи для уменьшения задержки
+            Future.wait([
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.callerId)
+                  .collection(collectionName.collectionCallHistory)
+                  .doc(call!.timestamp.toString())
+                  .set({
+                'type': 'OUTGOING',
+                'isVideoCall': call!.isVideoCall,
+                'id': call!.receiverId,
+                'timestamp': call!.timestamp,
+                'dp': call!.receiverPic,
+                'isMuted': false,
+                'receiverId': call!.receiverId,
+                'isJoin': false,
+                'status': 'calling',
+                'started': null,
+                "isGroup": call!.isGroup,
+                "groupName": call!.groupName,
+                'ended': null,
+                'callerName': call!.receiverName,
+              }, SetOptions(merge: true)),
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.receiverId)
+                  .collection(collectionName.collectionCallHistory)
+                  .doc(call!.timestamp.toString())
+                  .set({
+                'type': 'INCOMING',
+                'isVideoCall': call!.isVideoCall,
+                'id': call!.callerId,
+                'timestamp': call!.timestamp,
+                'dp': call!.callerPic,
+                'isMuted': false,
+                'receiverId': call!.receiverId,
+                'isJoin': true,
+                'status': 'missedCall',
+                "isGroup": call!.isGroup,
+                "groupName": call!.groupName,
+                'started': null,
+                'ended': null,
+                'callerName': call!.callerName,
+              }, SetOptions(merge: true)),
+            ]);
           }
           WakelockPlus.enable();
           //flutterLocalNotificationsPlugin!.cancelAll();
@@ -423,37 +426,40 @@ class AudioCallController extends GetxController {
 
           debugPrint("remote user $remoteUidValue joined");
           if (userData["id"] == call!.callerId) {
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.callerId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'started': DateTime.now(),
-              'status': 'pickedUp',
-              'isJoin': true,
-            }, SetOptions(merge: true));
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.receiverId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'started': DateTime.now(),
-              'status': 'pickedUp',
-            }, SetOptions(merge: true));
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.callerId)
-                .set({
-              "audioCallMade": FieldValue.increment(1),
-            }, SetOptions(merge: true));
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.receiverId)
-                .set({
-              "audioCallReceived": FieldValue.increment(1),
-            }, SetOptions(merge: true));
+            // Параллельные Firestore записи
+            Future.wait([
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.callerId)
+                  .collection(collectionName.collectionCallHistory)
+                  .doc(call!.timestamp.toString())
+                  .set({
+                'started': DateTime.now(),
+                'status': 'pickedUp',
+                'isJoin': true,
+              }, SetOptions(merge: true)),
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.receiverId)
+                  .collection(collectionName.collectionCallHistory)
+                  .doc(call!.timestamp.toString())
+                  .set({
+                'started': DateTime.now(),
+                'status': 'pickedUp',
+              }, SetOptions(merge: true)),
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.callerId)
+                  .set({
+                "audioCallMade": FieldValue.increment(1),
+              }, SetOptions(merge: true)),
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.receiverId)
+                  .set({
+                "audioCallReceived": FieldValue.increment(1),
+              }, SetOptions(merge: true)),
+            ]);
           }
           WakelockPlus.enable();
           update();
@@ -540,9 +546,12 @@ class AudioCallController extends GetxController {
       token: call!.agoraToken!,
       channelId: channelName!,
       uid: 0,
-      options: const ChannelMediaOptions(),
+      options: const ChannelMediaOptions(
+        autoSubscribeAudio: true,
+        publishMicrophoneTrack: true,
+        clientRoleType: ClientRoleType.clientRoleBroadcaster,
+      ),
     );
-    update();
     update();
     Get.forceAppUpdate();
   }
