@@ -198,6 +198,11 @@ class ContactProvider extends ChangeNotifier {
 
   // Check contacts in Firebase to see if they are registered or invited
   Future<void> checkContactsInFirebase(phoneNo) async {
+    // Clear previous data before fetching new contacts
+    _registeredContacts.clear();
+    _invitedContacts.clear();
+    notifyListeners();
+
     List<String> myArray = _allContacts
         .asMap()
         .entries
