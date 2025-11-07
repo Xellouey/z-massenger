@@ -485,15 +485,35 @@ class AudioCallController extends GetxController {
               'status': 'ended',
               'ended': DateTime.now(),
             }, SetOptions(merge: true));
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.receiverId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'status': 'ended',
-              'ended': DateTime.now(),
-            }, SetOptions(merge: true));
+
+            // Обработка групповых звонков
+            if (call!.receiver != null) {
+              List receiver = call!.receiver!;
+              receiver.asMap().entries.forEach((element) {
+                if (element.value["id"] != userData["id"]) {
+                  FirebaseFirestore.instance
+                      .collection(collectionName.calls)
+                      .doc(element.value["id"])
+                      .collection(collectionName.collectionCallHistory)
+                      .doc(call!.timestamp.toString())
+                      .set({
+                    'status': 'ended',
+                    'ended': DateTime.now(),
+                  }, SetOptions(merge: true));
+                }
+              });
+            } else {
+              // Обычный звонок один-на-один
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.receiverId)
+                  .collection(collectionName.collectionCallHistory)
+                  .doc(call!.timestamp.toString())
+                  .set({
+                'status': 'ended',
+                'ended': DateTime.now(),
+              }, SetOptions(merge: true));
+            }
           }
         },
         onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
@@ -516,15 +536,35 @@ class AudioCallController extends GetxController {
               'status': 'ended',
               'ended': DateTime.now(),
             }, SetOptions(merge: true));
-            FirebaseFirestore.instance
-                .collection(collectionName.calls)
-                .doc(call!.receiverId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call!.timestamp.toString())
-                .set({
-              'status': 'ended',
-              'ended': DateTime.now(),
-            }, SetOptions(merge: true));
+
+            // Обработка групповых звонков
+            if (call!.receiver != null) {
+              List receiver = call!.receiver!;
+              receiver.asMap().entries.forEach((element) {
+                if (element.value["id"] != userData["id"]) {
+                  FirebaseFirestore.instance
+                      .collection(collectionName.calls)
+                      .doc(element.value["id"])
+                      .collection(collectionName.collectionCallHistory)
+                      .doc(call!.timestamp.toString())
+                      .set({
+                    'status': 'ended',
+                    'ended': DateTime.now(),
+                  }, SetOptions(merge: true));
+                }
+              });
+            } else {
+              // Обычный звонок один-на-один
+              FirebaseFirestore.instance
+                  .collection(collectionName.calls)
+                  .doc(call!.receiverId)
+                  .collection(collectionName.collectionCallHistory)
+                  .doc(call!.timestamp.toString())
+                  .set({
+                'status': 'ended',
+                'ended': DateTime.now(),
+              }, SetOptions(merge: true));
+            }
           }
           WakelockPlus.disable();
           _closeCallView(Get.context);
