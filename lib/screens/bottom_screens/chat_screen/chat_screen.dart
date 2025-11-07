@@ -90,6 +90,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                         vPadding: Insets.i15,
                                         color: appCtrl.appTheme.white,
                                       ).inkWell(onTap: () => dashCtrl.pinAllChat()),
+                                    if (dashCtrl.isLongPress)
+                                      ActionIconsCommon(
+                                        icon: eSvgAssets.delete,
+                                        vPadding: Insets.i15,
+                                        color: appCtrl.appTheme.white,
+                                      ).inkWell(onTap: () => dashCtrl.deleteAllChats()),
                                     if (!dashCtrl.isSearch)
                                       ActionIconsCommon(
                                         icon: eSvgAssets.search,

@@ -64,6 +64,7 @@ class AppFonts {
   String search = "search";
   String wallpaper = "wallpaper";
   String clearChat = "clearChat";
+  String deleteChat = "deleteChat";
   String block = "block";
   String selectCall = "selectCall";
   String audioCall = "audioCall";
@@ -93,6 +94,8 @@ class AppFonts {
   final removePhoto = "removePhoto";
   final cancel = "cancel";
   final clearChatId = "clearChatId";
+  final deleteChatId = "deleteChatId";
+  final deleteChatMessage = "deleteChatMessage";
   final unblock = "unblock";
   final defaultWallpaper = "defaultWallpaper";
   final deleteOptions = "deleteOptions";

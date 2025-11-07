@@ -261,6 +261,13 @@ class GroupChatMessageAppBar extends StatelessWidget
                                       chatCtrl
                                           .unLockChat();
 
+                                    } else if (result ==
+                                        4) {
+                                      chatCtrl.isFilter =
+                                      false;
+                                      chatCtrl
+                                          .deleteChatConfirmation();
+                                      chatCtrl.update();
                                     }
                                   },
                                   offset: Offset(
@@ -296,7 +303,11 @@ class GroupChatMessageAppBar extends StatelessWidget
                                             .unblock
                                             : eSvgAssets
                                             .blockRed,
-                                        3,
+                                        3),
+                                    _buildPopupMenuItem(
+                                        appFonts.deleteChat,
+                                        eSvgAssets.delete,
+                                        4,
                                         isDivider:
                                         false),
                                   ],

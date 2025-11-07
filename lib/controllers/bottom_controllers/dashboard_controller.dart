@@ -300,4 +300,97 @@ class DashboardController extends GetxController
     selectedChat = [];
     update();
   }
+
+  //delete all selected chats
+  deleteAllChats() async {
+    // Show confirmation dialog
+    bool? confirm = await Get.dialog(
+      AlertDialog(
+        backgroundColor: appCtrl.appTheme.white,
+        title: Text(
+          appFonts.deleteChatId.tr,
+          style: AppCss.manropeblack16.textColor(appCtrl.appTheme.darkText),
+        ),
+        content: Text(
+          "Are you sure you want to delete ${selectedChat.length} chat(s)?",
+          style: AppCss.manropeMedium14.textColor(appCtrl.appTheme.darkText),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text(appFonts.cancel.tr),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: Text(appFonts.deleteChat.tr),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Delete each selected chat
+      for (var element in selectedChat) {
+        log("Deleting chat: $element");
+
+        // Get the chat document to find chatId or groupId
+        await FirebaseFirestore.instance
+            .collection(collectionName.users)
+            .doc(appCtrl.user["id"])
+            .collection(collectionName.chats)
+            .doc(element)
+            .get()
+            .then((chatDoc) async {
+          if (chatDoc.exists) {
+            var chatData = chatDoc.data();
+
+            // Delete messages
+            if (chatData?["chatId"] != null) {
+              // Single chat - delete messages
+              await FirebaseFirestore.instance
+                  .collection(collectionName.users)
+                  .doc(appCtrl.user["id"])
+                  .collection(collectionName.messages)
+                  .doc(chatData!["chatId"])
+                  .collection(collectionName.chat)
+                  .get()
+                  .then((messages) {
+                if (messages.docs.isNotEmpty) {
+                  for (var msg in messages.docs) {
+                    msg.reference.delete();
+                  }
+                }
+              });
+            } else if (chatData?["groupId"] != null) {
+              // Group chat - delete messages
+              await FirebaseFirestore.instance
+                  .collection(collectionName.users)
+                  .doc(appCtrl.user["id"])
+                  .collection(collectionName.groupMessage)
+                  .doc(chatData!["groupId"])
+                  .collection(collectionName.chat)
+                  .get()
+                  .then((messages) {
+                if (messages.docs.isNotEmpty) {
+                  for (var msg in messages.docs) {
+                    msg.reference.delete();
+                  }
+                }
+              });
+            }
+
+            // Delete the chat document
+            await chatDoc.reference.delete();
+          }
+        }).catchError((e) {
+          log("Error deleting chat: $e");
+        });
+      }
+
+      await Future.delayed(DurationsClass.s1);
+      isLongPress = false;
+      selectedChat = [];
+      update();
+    }
+  }
 }

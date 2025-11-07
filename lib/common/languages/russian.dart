@@ -65,6 +65,7 @@ final dynamic russian = {
   "search": "Искать",
   "wallpaper": "Обои",
   "clearChat": "Очистить чат",
+  "deleteChat": "Удалить чат",
   "block": "Блок",
   "selectCall": "Выберите тип вызова",
   "audioCall": "Аудиозвонок",
@@ -95,6 +96,8 @@ final dynamic russian = {
   "removePhoto": "Удалить фотографию",
   "cancel": "Отмена",
   "clearChatId": "Очистить этот чат?",
+  "deleteChatId": "Удалить этот чат?",
+  "deleteChatMessage": "Это безвозвратно удалит чат и все его сообщения с вашего устройства.",
   "unblock": "Разблокировать",
   "defaultWallpaper": "Обои по умолчанию",
   "deleteOptions":

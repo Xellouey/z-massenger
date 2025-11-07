@@ -353,6 +353,15 @@ class GroupChatMessageController extends GetxController {
     );
   }
 
+  //delete dialog
+  deleteChatConfirmation() async {
+    Get.generalDialog(
+      pageBuilder: (context, anim1, anim2) {
+        return const GroupDeleteDialog();
+      },
+    );
+  }
+
   onTapDots() {
     isFilter = !isFilter;
     update();
