@@ -330,16 +330,22 @@ class VideoCallController extends GetxController {
           });
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
-            UserOfflineReasonType reason) {
+            UserOfflineReasonType reason) async {
           debugPrint("remote user $remoteUid left channel");
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_isDisposed) return;
+          remoteUid = 0;
+          users.remove(remoteUid);
+          update();
 
-            remoteUid = 0;
-            users.remove(remoteUid);
-            update();
-            if (isAlreadyEndedCall == false) {
+          // Вызываем onCallEnd для завершения звонка у второго участника
+          if (Get.context != null && !isAlreadyEndedCall) {
+            isAlreadyEndedCall = true;
+            await onCallEnd(Get.context!);
+            return;
+          }
+
+          // Если по каким-то причинам контекст недоступен, обновляем Firebase
+          if (isAlreadyEndedCall == false) {
             FirebaseFirestore.instance
                 .collection(collectionName.calls)
                 .doc(call!.callerId)
@@ -375,8 +381,7 @@ class VideoCallController extends GetxController {
                 'ended': DateTime.now(),
               }, SetOptions(merge: true));
             }
-            }
-          });
+          }
         },
         onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
           debugPrint(
