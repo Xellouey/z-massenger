@@ -7,6 +7,7 @@ import 'package:chatzy/models/call_model.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../config.dart';
 import '../common_controllers/notification_controller.dart';
+import '../common_controllers/firebase_common_controller.dart';
 
 class VideoCallController extends GetxController {
   String? channelName;
@@ -46,26 +47,230 @@ class VideoCallController extends GetxController {
   Timer? timer;
 
   // Добавить участника в видео звонок
-  void onAddParticipant() {
+  void onAddParticipant() async {
     log("VideoCallController: onAddParticipant called");
-    if (call != null) {
-      log("Current call data: ${call!.toMap(call!)}");
+    if (call == null) {
+      log("Error: Call data is null");
+      return;
     }
+
+    log("Current call data: ${call!.toMap(call!)}");
     log("Channel name: $channelName");
     log("User ID: ${userData?['id']}");
-    log("Is group call: ${call?.isGroup}");
-    log("Caller ID: ${call?.callerId}");
-    log("Receiver ID: ${call?.receiverId}");
-    log("Receiver list: ${call?.receiver}");
-    log("Group name: ${call?.groupName}");
+    log("Is group: ${call?.isGroup}");
 
-    // Пока что функция добавления участников в звонок не реализована полностью
-    // Для полной реализации требуется:
-    // 1. Экран выбора контактов для конференции звонков
-    // 2. Обновить Agora и Firebase состояние для нескольких участников
+    // Проверяем, является ли звонок групповым
+    if (call!.isGroup == true) {
+      log("This is already a group call");
+      // Переходим на экран выбора участников для группового звонка
+      _navigateToAddParticipants();
+    } else {
+      log("Converting 1-to-1 call to group call");
+      // Преобразуем обычный звонок в групповой
+      await _convertToGroupCall();
+    }
+  }
 
-    log("VideoCallController: Add participant button is now active with logging");
-    log("VideoCallController: Full implementation requires conference feature");
+  // Навигация на экран добавления участников
+  void _navigateToAddParticipants() {
+    // Подготовка данных для экрана добавления участников
+    List<dynamic> existingParticipants = [];
+
+    // Добавляем текущих участников звонка
+    if (call!.callerId != null) {
+      existingParticipants.add({
+        'id': call!.callerId,
+        'name': call!.callerName,
+        'image': call!.callerPic,
+      });
+    }
+
+    if (call!.receiverId != null && call!.receiverId != call!.callerId) {
+      existingParticipants.add({
+        'id': call!.receiverId,
+        'name': call!.receiverName,
+        'image': call!.receiverPic,
+      });
+    }
+
+    log("Existing participants: $existingParticipants");
+
+    // Переходим на экран выбора контактов
+    Get.toNamed(
+      routeName.addParticipants,
+      arguments: {
+        'exitsUser': existingParticipants,
+        'groupId': channelName, // используем channelId как groupId для звонка
+        'isGroup': true,
+        'isCall': true, // флаг что это звонок, а не группа
+        'channelName': channelName,
+        'agoraToken': call!.agoraToken,
+        'currentCall': call,
+      },
+    )?.then((result) {
+      if (result != null && result is List) {
+        log("Selected participants: $result");
+        _addSelectedParticipantsToCall(result);
+      }
+    });
+  }
+
+  // Преобразование обычного звонка в групповой
+  Future<void> _convertToGroupCall() async {
+    try {
+      log("Starting conversion to group video call");
+
+      // Обновляем модель звонка
+      call!.isGroup = true;
+      call!.groupName = "${call!.callerName}, ${call!.receiverName}";
+
+      // Обновляем Firebase
+      await FirebaseFirestore.instance
+          .collection(collectionName.calls)
+          .doc(call!.callerId)
+          .collection(collectionName.calling)
+          .where('channelId', isEqualTo: channelName)
+          .get()
+          .then((snapshot) {
+        for (var doc in snapshot.docs) {
+          doc.reference.update({
+            'isGroup': true,
+            'groupName': call!.groupName,
+          });
+        }
+      });
+
+      await FirebaseFirestore.instance
+          .collection(collectionName.calls)
+          .doc(call!.receiverId)
+          .collection(collectionName.calling)
+          .where('channelId', isEqualTo: channelName)
+          .get()
+          .then((snapshot) {
+        for (var doc in snapshot.docs) {
+          doc.reference.update({
+            'isGroup': true,
+            'groupName': call!.groupName,
+          });
+        }
+      });
+
+      update();
+
+      log("Converted to group video call successfully");
+
+      // Теперь открываем экран добавления участников
+      _navigateToAddParticipants();
+
+    } catch (e) {
+      log("Error converting to group video call: $e");
+      Get.snackbar(
+        'Error',
+        'Failed to add participant. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  // Добавление выбранных участников в звонок
+  Future<void> _addSelectedParticipantsToCall(List<dynamic> newParticipants) async {
+    try {
+      log("Adding ${newParticipants.length} new participants to video call");
+
+      for (var participant in newParticipants) {
+        log("Adding participant: ${participant['name']}");
+
+        // Получаем данные участника из Firebase
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection(collectionName.users)
+            .doc(participant['id'])
+            .get();
+
+        if (!userDoc.exists) {
+          log("User ${participant['id']} not found");
+          continue;
+        }
+
+        Map<String, dynamic> userDataparticipant = userDoc.data() as Map<String, dynamic>;
+
+        // Создаем звонок для нового участника
+        Call newParticipantCall = Call(
+          timestamp: call!.timestamp,
+          callerId: call!.callerId,
+          callerName: call!.callerName,
+          callerPic: call!.callerPic,
+          receiverId: participant['id'],
+          receiverName: userDataparticipant['name'],
+          receiverPic: userDataparticipant['image'],
+          callerToken: call!.callerToken,
+          receiverToken: userDataparticipant['pushToken'],
+          channelId: channelName,
+          isVideoCall: call!.isVideoCall,
+          isGroup: true,
+          groupName: call!.groupName,
+          agoraToken: call!.agoraToken,
+        );
+
+        // Добавляем звонок в Firebase для нового участника
+        await FirebaseFirestore.instance
+            .collection(collectionName.calls)
+            .doc(participant['id'])
+            .collection(collectionName.calling)
+            .add({
+          'timestamp': call!.timestamp,
+          'callerId': call!.callerId,
+          'callerName': call!.callerName,
+          'callerPic': call!.callerPic,
+          'receiverId': participant['id'],
+          'receiverName': userDataparticipant['name'],
+          'receiverPic': userDataparticipant['image'],
+          'callerToken': call!.callerToken,
+          'receiverToken': userDataparticipant['pushToken'],
+          'hasDialled': false,
+          'channelId': channelName,
+          'agoraToken': call!.agoraToken,
+          'isGroup': true,
+          'groupName': call!.groupName,
+          'isVideoCall': call!.isVideoCall,
+        });
+
+        // Отправляем push-уведомление новому участнику
+        final firebaseCtrl = Get.isRegistered<FirebaseCommonController>()
+            ? Get.find<FirebaseCommonController>()
+            : Get.put(FirebaseCommonController());
+        await firebaseCtrl.sendNotification(
+          notificationType: 'call',
+          title: call!.isVideoCall == true
+              ? "Incoming Video Call..."
+              : "Incoming Audio Call...",
+          msg: "${call!.callerName} added you to ${call!.isVideoCall == true ? 'video' : 'audio'} call",
+          token: userDataparticipant['pushToken'],
+          pName: call!.callerName,
+          image: call!.callerPic,
+          dataTitle: call!.callerName,
+        );
+
+        log("Successfully added participant: ${participant['name']}");
+      }
+
+      Get.snackbar(
+        'Success',
+        '${newParticipants.length} participant(s) added to video call',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: appCtrl.appTheme.online,
+        colorText: appCtrl.appTheme.sameWhite,
+      );
+
+      update();
+
+    } catch (e) {
+      log("Error adding participants to video call: $e");
+      Get.snackbar(
+        'Error',
+        'Failed to add participants. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   void stopTimer() {
