@@ -12,6 +12,11 @@ class FirebaseCommonController extends GetxController {
   List<PhotoUrl> newPhotoList = [];
   final String url = 'https://www.googleapis.com/auth/firebase.messaging';
 
+  // Кэширование Agora токенов для ускорения звонков
+  Map<String, dynamic>? _cachedAgoraToken;
+  DateTime? _tokenCacheTime;
+  static const int _tokenCacheDurationMinutes = 30; // Токен действителен 30 минут
+
   //online status update
   void setIsActive() async {
     var user = appCtrl.storage.read(session.user) ?? "";
@@ -450,6 +455,20 @@ class FirebaseCommonController extends GetxController {
     }
   } */
   getAgoraTokenAndChannelName() async {
+    // Проверяем кэш токена (экономия 1-3 секунды!)
+    if (_cachedAgoraToken != null && _tokenCacheTime != null) {
+      final now = DateTime.now();
+      final difference = now.difference(_tokenCacheTime!);
+
+      // Если токен еще действителен, возвращаем из кэша
+      if (difference.inMinutes < _tokenCacheDurationMinutes) {
+        log("Using cached Agora token (saved ~2 seconds)");
+        return _cachedAgoraToken;
+      } else {
+        log("Cached token expired, generating new one");
+      }
+    }
+
     final agoraData = await FirebaseFirestore.instance
         .collection(collectionName.config)
         .doc(collectionName.agoraToken)
@@ -474,6 +493,11 @@ class FirebaseCommonController extends GetxController {
           "agoraToken": result.data["token"],
           "channelName": result.data["channelName"],
         };
+
+        // Кэшируем токен для последующих звонков
+        _cachedAgoraToken = response;
+        _tokenCacheTime = DateTime.now();
+        log("Agora token cached for ${_tokenCacheDurationMinutes} minutes");
 
         return response;
       } else {

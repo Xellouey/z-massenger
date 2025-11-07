@@ -1611,6 +1611,15 @@ class ChatController extends GetxController {
     );
   }
 
+  //delete dialog
+  deleteChatConfirmation() async {
+    Get.generalDialog(
+      pageBuilder: (context, anim1, anim2) {
+        return const SingleDeleteDialog();
+      },
+    );
+  }
+
   onEmojisBackPress() {
     textEditingController.text =
         textEditingController.text.characters.skipLast(1).toString();

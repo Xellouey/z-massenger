@@ -51,7 +51,7 @@ final dynamic russian = {
   "calls": "Звонки",
   "setting": "Настройки",
   "profile": "Профиль",
-  "recentUpdate": "Недавнее обновление",
+  "recentUpdate": "Истории",
   "myStatus": "Мой статус",
   "newGroup": "Новая группа",
   "newBroadcast": "Новая трансляция",
@@ -65,6 +65,7 @@ final dynamic russian = {
   "search": "Искать",
   "wallpaper": "Обои",
   "clearChat": "Очистить чат",
+  "deleteChat": "Удалить чат",
   "block": "Блок",
   "selectCall": "Выберите тип вызова",
   "audioCall": "Аудиозвонок",
@@ -95,6 +96,8 @@ final dynamic russian = {
   "removePhoto": "Удалить фотографию",
   "cancel": "Отмена",
   "clearChatId": "Очистить этот чат?",
+  "deleteChatId": "Удалить этот чат?",
+  "deleteChatMessage": "Это безвозвратно удалит чат и все его сообщения с вашего устройства.",
   "unblock": "Разблокировать",
   "defaultWallpaper": "Обои по умолчанию",
   "deleteOptions":
@@ -182,7 +185,7 @@ final dynamic russian = {
   "inComingAudio": "Входящее аудио",
   "picked": "Отборный",
   "connecting": "Соединительный",
-  "calling": "Призвание",
+  "calling": "Вызов",
   "onCall": "Дежурство",
   "callEnded": "Звонок завершен",
   "callRejected": "Вызов отклонен",
@@ -194,7 +197,7 @@ final dynamic russian = {
   "youNotCall": "Вы еще не звонили!!",
   "thereIsNoCall":
       "Звонок еще не сделан. Нажмите на кнопку «Ниже», чтобы начать звонок",
-  "registerPeople": "Регистрация людей",
+  "registerPeople": "Зарегистрированные контакты",
   "deleteAccount": "Удалить учетную запись",
   "youWillLostAllData":
       "Вы потеряете все свои данные. Вы все еще хотите удалить свою учетную запись?",

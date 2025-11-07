@@ -149,11 +149,33 @@ class _MyAppState extends State<MyApp> {
                     );
                   }
                   return Scaffold(
-                    backgroundColor: appCtrl.appTheme.primary,
-                    body: Center(
-                      child: CircularProgressIndicator(
-                        color: appCtrl.appTheme.white,
-                      ),
+                    backgroundColor: Colors.black,
+                    body: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          width: MediaQuery.of(context).size.width,
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              eImageAssets.appLogo,
+                              height: 100,
+                              width: 100,
+                            ),
+                            const VSpace(Sizes.s20),
+                            Text(
+                              appFonts.Z.tr,
+                              style: AppCss.muktaVaani40.textColor(
+                                Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
                 },

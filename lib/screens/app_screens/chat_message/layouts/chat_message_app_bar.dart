@@ -345,6 +345,8 @@ class ChatMessageAppBar extends StatelessWidget implements PreferredSizeWidget {
                                                                 "content"])));
                                                   } else if (result == 6) {
                                                     chatCtrl.unLockChat();
+                                                  } else if (result == 7) {
+                                                    chatCtrl.deleteChatConfirmation();
                                                   }
                                                 },
                                                 offset:
@@ -405,7 +407,11 @@ class ChatMessageAppBar extends StatelessWidget implements PreferredSizeWidget {
                                                                     .unblock
                                                                 : eSvgAssets
                                                                     .blockRed,
-                                                            6,
+                                                            6),
+                                                        _buildPopupMenuItem(
+                                                            appFonts.deleteChat,
+                                                            eSvgAssets.delete,
+                                                            7,
                                                             isDivider: false),
                                                       ],
                                                 child: SvgPicture.asset(
