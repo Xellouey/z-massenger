@@ -14,7 +14,6 @@ class SingleClearDialog extends StatelessWidget {
               return Align(
                   alignment: Alignment.center,
                   child: Container(
-                      height: Sizes.s160,
                       margin: const EdgeInsets.symmetric(
                           horizontal: Insets.i10, vertical: Insets.i15),
                       padding: const EdgeInsets.symmetric(
