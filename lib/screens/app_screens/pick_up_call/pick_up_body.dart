@@ -31,31 +31,40 @@ class PickupBody extends StatelessWidget {
     final recentChatCtrl =
     Provider.of<RecentChatController>(context, listen: false);
     final userData = recentChatCtrl.userData;
+
+    // Определяем, кто "другой" пользователь в звонке
+    // Если я звонящий (callerId), то другой - получатель (receiverId)
+    // Если я получатель (receiverId), то другой - звонящий (callerId)
+    final bool isICaller = call!.callerId == appCtrl.user["id"];
+    final String otherUserId = isICaller ? call!.receiverId! : call!.callerId!;
+    final String otherUserName = isICaller ? call!.receiverName! : call!.callerName!;
+    final String otherUserPic = isICaller ? call!.receiverPic! : call!.callerPic!;
+
     final isExistingChat = userData.any((element) =>
     (element["receiverId"] == appCtrl.user["id"] &&
-        element["senderId"] == call!.receiverId) ||
+        element["senderId"] == otherUserId) ||
         (element["senderId"] == appCtrl.user["id"] &&
-            element["receiverId"] == call!.receiverId));
+            element["receiverId"] == otherUserId));
 
     UserContactModel userContact = UserContactModel(
-      username: call!.receiverName,
-      uid: call!.receiverId,
+      username: otherUserName,
+      uid: otherUserId,
       phoneNumber: '',
-      image: call!.receiverPic,
+      image: otherUserPic,
       isRegister: true,
     );
 
     if (isExistingChat) {
       final index = userData.indexWhere((element) =>
       (element["receiverId"] == appCtrl.user["id"] &&
-          element["senderId"] == call!.receiverId) ||
+          element["senderId"] == otherUserId) ||
           (element["senderId"] == appCtrl.user["id"] &&
-              element["receiverId"] == call!.receiverId));
+              element["receiverId"] == otherUserId));
       userContact = UserContactModel(
-        username: call!.receiverName,
-        uid: call!.receiverId,
+        username: otherUserName,
+        uid: otherUserId,
         phoneNumber: userData[index].data()['phone'] ?? '',
-        image: userData[index].data()['image'] ?? call!.receiverPic,
+        image: userData[index].data()['image'] ?? otherUserPic,
         isRegister: true,
       );
       Get.toNamed(routeName.chatLayout, arguments: {

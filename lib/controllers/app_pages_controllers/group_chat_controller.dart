@@ -378,6 +378,12 @@ class GroupChatMessageController extends GetxController {
         List receiver = pData["groupData"]["users"];
 
         receiver.asMap().entries.forEach((element) {
+          // Пропускаем текущего пользователя (нельзя звонить самому себе)
+          if (element.value["id"] == userData["id"]) {
+            log.log("Skipping self in group call");
+            return;
+          }
+
           FirebaseFirestore.instance
               .collection(collectionName.users)
               .doc(element.value["id"])
