@@ -25,21 +25,10 @@ class SplashScreen extends StatelessWidget {
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
             ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Image.asset(
-                  eImageAssets.appLogo,
-                  height: 100,
-                  width: 100,
-                ),
-                const VSpace(Sizes.s20),
-                Text(
-                  appFonts.Z.tr,
-                  style: AppCss.muktaVaani40.textColor(Colors.white),
-                ),
-              ],
+            Image.asset(
+              eImageAssets.icLauncherPlaystore,
+              height: 150,
+              width: 150,
             ),
           ],
         ),

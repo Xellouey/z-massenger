@@ -81,4 +81,5 @@ class SvgAssets {
   final String tick1 = "assets/svg/tick1.svg";
   final String forward = "assets/svg/forward.svg";
   final String reply = "assets/svg/reply.svg";
+  final String delete = "assets/svg/trash.svg";
 }

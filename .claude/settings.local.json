@@ -5,7 +5,14 @@
       "Bash(flutter doctor:*)",
       "Bash(flutter devices:*)",
       "Bash(flutter run:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(findstr:*)",
+      "Bash(copy \"assets\\images\\splash.png\" \"android\\app\\src\\main\\res\\drawable\\splash.png\")",
+      "Bash(copy \"assets\\images\\splash.png\" \"android\\app\\src\\main\\res\\drawable-v21\\splash.png\")",
+      "Bash(cmd /c copy \"assets\\images\\splash.png\" \"android\\app\\src\\main\\res\\drawable\\splash.png\")",
+      "Bash(cmd /c copy \"assets\\images\\splash.png\" \"android\\app\\src\\main\\res\\drawable-v21\\splash.png\")",
+      "Bash(cmd /c \"if exist android\\app\\src\\main\\res\\drawable\\splash.png (echo File exists) else (echo File not found)\")",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

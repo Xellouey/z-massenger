@@ -11,7 +11,7 @@ class GroupDeleteDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       body: StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return GetBuilder<GroupChatController>(builder: (chatCtrl) {
+            return GetBuilder<GroupChatMessageController>(builder: (chatCtrl) {
               return Align(
                   alignment: Alignment.center,
                   child: Container(
@@ -57,7 +57,7 @@ class GroupDeleteDialog extends StatelessWidget {
                                             .collection(collectionName.users)
                                             .doc(appCtrl.user["id"])
                                             .collection(collectionName.groupMessage)
-                                            .doc(chatCtrl.groupId)
+                                            .doc(chatCtrl.pId)
                                             .collection(collectionName.chat)
                                             .get()
                                             .then((value) async {
@@ -71,7 +71,7 @@ class GroupDeleteDialog extends StatelessWidget {
                                                   .doc(appCtrl.user["id"])
                                                   .collection(
                                                   collectionName.groupMessage)
-                                                  .doc(chatCtrl.groupId)
+                                                  .doc(chatCtrl.pId)
                                                   .collection(collectionName.chat)
                                                   .doc(element.value.id)
                                                   .delete();
@@ -84,7 +84,7 @@ class GroupDeleteDialog extends StatelessWidget {
                                               .doc(appCtrl.user["id"])
                                               .collection(collectionName.chats)
                                               .where("groupId",
-                                              isEqualTo: chatCtrl.groupId)
+                                              isEqualTo: chatCtrl.pId)
                                               .get()
                                               .then((userGroup) async {
                                             if (userGroup.docs.isNotEmpty) {

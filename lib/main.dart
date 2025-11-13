@@ -157,23 +157,10 @@ class _MyAppState extends State<MyApp> {
                           height: MediaQuery.of(context).size.height,
                           width: MediaQuery.of(context).size.width,
                         ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              eImageAssets.appLogo,
-                              height: 100,
-                              width: 100,
-                            ),
-                            const VSpace(Sizes.s20),
-                            Text(
-                              appFonts.Z.tr,
-                              style: AppCss.muktaVaani40.textColor(
-                                Colors.white,
-                              ),
-                            ),
-                          ],
+                        Image.asset(
+                          eImageAssets.icLauncherPlaystore,
+                          height: 150,
+                          width: 150,
                         ),
                       ],
                     ),
@@ -197,34 +184,13 @@ class _MyAppState extends State<MyApp> {
               theme: AppTheme.fromType(ThemeType.light).themeData,
               debugShowCheckedModeBanner: false,
               home: Scaffold(
-                backgroundColor: appCtrl.appTheme.primary,
-                body: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      width: MediaQuery.of(context).size.width,
-                      child: Image.asset(eImageAssets.splash, fit: BoxFit.fill),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          eImageAssets.appLogo,
-                          height: 100,
-                          width: 100,
-                        ),
-                        const VSpace(Sizes.s20),
-                        Text(
-                          appFonts.Z.tr,
-                          style: AppCss.muktaVaani40.textColor(
-                            appCtrl.appTheme.sameWhite,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Image.asset(
+                    eImageAssets.icLauncherPlaystore,
+                    height: 150,
+                    width: 150,
+                  ),
                 ),
               ),
             ),

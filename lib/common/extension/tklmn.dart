@@ -237,24 +237,10 @@ log("MFFF :${mn.exists}");
     return true  // Changed to true to bypass license check for development
         ? isLoading
             ? Scaffold(
-                backgroundColor: appCtrl.appTheme.primary,
-                body: Stack(alignment: Alignment.center, children: [
-                  SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      width: MediaQuery.of(context).size.width,
-                      child:
-                          Image.asset(eImageAssets.splash, fit: BoxFit.fill)),
-                  Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Image.asset(eImageAssets.appLogo,height: 100,width: 100,),
-                        const VSpace(Sizes.s20),
-                        Text(appFonts.Z.tr,
-                            style: AppCss.muktaVaani40
-                                .textColor(appCtrl.appTheme.sameWhite))
-                      ])
-                ]))
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Image.asset(eImageAssets.icLauncherPlaystore,height: 150,width: 150,)
+                ))
             : Scaffold(
                 backgroundColor: appCtrl.appTheme.white,
                 appBar: AppBar(
@@ -427,24 +413,10 @@ log("MFFF :${mn.exists}");
               )
         : isLoading
             ? Scaffold(
-                backgroundColor: appCtrl.appTheme.primary,
-                body: Stack(alignment: Alignment.center, children: [
-                  SizedBox(
-                      height: MediaQuery.of(context).size.height,
-                      width: MediaQuery.of(context).size.width,
-                      child:
-                          Image.asset(eImageAssets.splash, fit: BoxFit.fill)),
-                  Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Image.asset(eImageAssets.appLogo,height: 100,width: 100,),
-                        const VSpace(Sizes.s20),
-                        Text(appFonts.Z.tr,
-                            style: AppCss.muktaVaani40
-                                .textColor(appCtrl.appTheme.sameWhite))
-                      ])
-                ]))
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Image.asset(eImageAssets.icLauncherPlaystore,height: 150,width: 150,)
+                ))
             : isDocHave
                 ? !isCheckAK
                     ? SplashScreen(
@@ -458,24 +430,10 @@ log("MFFF :${mn.exists}");
                         uc: uc!,
                       )
                 : Scaffold(
-                    backgroundColor: appCtrl.appTheme.primary,
-                    body: Stack(alignment: Alignment.center, children: [
-                      SizedBox(
-                          height: MediaQuery.of(context).size.height,
-                          width: MediaQuery.of(context).size.width,
-                          child: Image.asset(eImageAssets.splash,
-                              fit: BoxFit.fill)),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-    Image.asset(eImageAssets.appLogo,height: 100,width: 100,),
-                            const VSpace(Sizes.s20),
-                            Text(appFonts.Z.tr,
-                                style: AppCss.muktaVaani40
-                                    .textColor(appCtrl.appTheme.sameWhite))
-                          ])
-                    ]));
+                    backgroundColor: Colors.black,
+                    body: Center(
+                      child: Image.asset(eImageAssets.icLauncherPlaystore,height: 150,width: 150,)
+                    ));
   }
 
   String reverse(String string) {

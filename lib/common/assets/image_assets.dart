@@ -8,6 +8,7 @@ class ImageAssets {
   final String r3 = "assets/images/r3.png";
   final String fanIcon = "assets/images/fanIcon.png";
   final String splash = "assets/images/splash.png";
+  final String icLauncherPlaystore = "assets/images/ic_launcher-playstore.png";
   final String selfie1 = "assets/images/selfie1.png";
   final String selfie2 = "assets/images/selfie2.png";
   final String selfie3 = "assets/images/selfie3.png";
