@@ -173,6 +173,14 @@ class ChatMessageApi {
         log.log("TODAT :%${value.data()}");
         toData = value.data();
       });
+
+      // Проверка: нельзя звонить самому себе
+      if (userData["id"] == toData["id"]) {
+        log.log("ERROR: Cannot call yourself!");
+        Fluttertoast.showToast(msg: "You cannot call yourself");
+        return;
+      }
+
       int timestamp = DateTime.now().millisecondsSinceEpoch;
 
       Map<String, dynamic>? response =
