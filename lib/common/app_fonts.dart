@@ -244,6 +244,13 @@ class AppFonts {
   final unLock = "unLock";
   final dG9uZUlk = "dG9uZUlk";
 
+  // Call-related strings
+  final callYouLater = "callYouLater";
+  final connectionError = "connectionError";
+  final audioCallInitError = "audioCallInitError";
+  final videoCallInitError = "videoCallInitError";
+  final cannotCallYourself = "cannotCallYourself";
+
   String unblockUser(val) => "unblockUser".trParams({'pName': val});
   String youContactSync(val) => "youContactSync".trParams({'len': val});
 }

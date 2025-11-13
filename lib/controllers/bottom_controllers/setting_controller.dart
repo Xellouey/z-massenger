@@ -322,12 +322,7 @@ class SettingController extends GetxController {
   }
 
   onChange(value, data) async {
-    if (data["title"] == appFonts.rtl) {
-      appCtrl.isRTL = value;
-      appCtrl.storage.write(session.isRTL, appCtrl.isRTL);
-      appCtrl.update();
-      Get.forceAppUpdate();
-    } else if (data["title"] == appFonts.theme) {
+    if (data["title"] == appFonts.theme) {
       appCtrl.storage.write(session.isDarkMode, appCtrl.isTheme);
       appCtrl.isTheme = value;
       appCtrl.update();

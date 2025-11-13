@@ -157,7 +157,6 @@ class AppArray {
   List settingList = [
     {"icon": eSvgAssets.multiLang, "title": appFonts.appLanguage},
     {"icon": eSvgAssets.refresh, 'title': appFonts.syncNow},
-    {"icon": eSvgAssets.rtl, "title": appFonts.rtl},
     {"icon": eSvgAssets.theme, "title": appFonts.theme},
     {"icon": eSvgAssets.fingerScanner, "title": appFonts.fingerLock},
     {"icon": eSvgAssets.starOut, "title": appFonts.rateApp},

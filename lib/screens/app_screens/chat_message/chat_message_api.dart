@@ -177,7 +177,7 @@ class ChatMessageApi {
       // Проверка: нельзя звонить самому себе
       if (userData["id"] == toData["id"]) {
         log.log("ERROR: Cannot call yourself!");
-        Fluttertoast.showToast(msg: "You cannot call yourself");
+        Fluttertoast.showToast(msg: appFonts.cannotCallYourself.tr);
         return;
       }
 
@@ -250,8 +250,8 @@ log.log("call.receiverId::${call.callerPic}///${toData["id"]}");
             debugPrint("FCCC : ${call.receiverToken}");
             if (isVideoCall == false) {
               firebaseCtrl.sendNotification(notificationType: 'call',
-                  title: "Incoming Audio Call...",
-                  msg: "${call.callerName} audio call",
+                  title: "Входящий аудиозвонок...",
+                  msg: "${call.callerName} звонит!",
                   token: call.receiverToken,
                   pName: call.callerName,
                   image: userData["image"],
@@ -265,8 +265,8 @@ log.log("call.receiverId::${call.callerPic}///${toData["id"]}");
               Get.toNamed(routeName.audioCall, arguments: data);
             } else {
               firebaseCtrl.sendNotification(
-                  title: "Incoming Video Call...",
-                  msg: "${call.callerName} video call",
+                  title: "Входящий видеозвонок...",
+                  msg: "${call.callerName} звонит!",
                   token: call.receiverToken,
                   pName: call.callerName,
                   image: userData["image"],
@@ -284,7 +284,7 @@ log.log("call.receiverId::${call.callerPic}///${toData["id"]}");
         });
 
       } else {
-        Fluttertoast.showToast(msg: "Failed to call");
+        Fluttertoast.showToast(msg: "Не удалось позвонить");
       }
     } on FirebaseException catch (e) {
       // Caught an exception from Firebase.

@@ -84,3 +84,5 @@ build/
 *.ipr
 *.iws
 .DS_Store
+/android/.gradle/8.9/checksums/md5-checksums.bin
+/android/.gradle/8.9/checksums/sha1-checksums.bin

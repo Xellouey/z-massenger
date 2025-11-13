@@ -93,8 +93,8 @@ class _AudioCallState extends State<AudioCall>
       debugPrint("Error initializing Agora: $e");
       // Показываем ошибку пользователю
       Get.snackbar(
-        'Connection Error',
-        'Failed to initialize audio call. Please try again.',
+        appFonts.connectionError.tr,
+        appFonts.audioCallInitError.tr,
         snackPosition: SnackPosition.BOTTOM,
       );
     }
@@ -240,7 +240,7 @@ class _AudioCallState extends State<AudioCall>
                                       snapshot.data!.data() == null ||
                                               snapshot.data == null
                                           ? Text(
-                                              "Ringing...",
+                                              "Вызов...",
                                               style: AppCss.manropeblack14
                                                   .textColor(
                                                       appCtrl.appTheme.primary),

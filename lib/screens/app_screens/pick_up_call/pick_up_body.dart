@@ -71,14 +71,14 @@ class PickupBody extends StatelessWidget {
       Get.toNamed(routeName.chatLayout, arguments: {
         'chatId': userData[index]['chatId'],
         'data': userContact,
-        'message': 'Call you later',
+        'message': appFonts.callYouLater.tr,
         'isCallEnd': true,
       });
     } else {
       Get.toNamed(routeName.chatLayout, arguments: {
         'chatId': '0',
         'data': userContact,
-        'message': 'Call you later',
+        'message': appFonts.callYouLater.tr,
         'isCallEnd': true,
       });
     }
@@ -187,7 +187,7 @@ class PickupBody extends StatelessWidget {
                       ),
                       const VSpace(Sizes.s10),
                       Text(
-                        'Ringing...',
+                        'Вызов...',
                         style: AppCss.manropeblack14
                             .textColor(appCtrl.appTheme.primary),
                         textAlign: TextAlign.center,
@@ -322,7 +322,7 @@ class PickupBody extends StatelessWidget {
                           ),
                           const VSpace(Sizes.s10),
                           Text(
-                            'Ringing...',
+                            'Вызов...',
                             style: AppCss.manropeblack14
                                 .textColor(appCtrl.appTheme.primary),
                             textAlign: TextAlign.center,

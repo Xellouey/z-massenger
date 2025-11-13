@@ -196,6 +196,46 @@ class ContactProvider extends ChangeNotifier {
     }
   }
 
+  // Helper method to normalize phone numbers
+  List<String> _normalizePhoneNumber(String rawPhone) {
+    List<String> variations = [];
+    String phone = rawPhone.replaceAll(" ", "").replaceAll("-", "").replaceAll("(", "").replaceAll(")", "");
+
+    // Add the original cleaned number
+    variations.add(phone);
+
+    // If phone starts with +, add version without +
+    if (phone.startsWith('+')) {
+      variations.add(phone.substring(1));
+    } else {
+      // If doesn't start with +, add version with +
+      variations.add('+' + phone);
+    }
+
+    // Russian specific formats
+    if (phone.startsWith('8') && phone.length == 11) {
+      // 89123456789 -> +79123456789, 79123456789
+      String normalized = '7' + phone.substring(1);
+      variations.add('+' + normalized);
+      variations.add(normalized);
+    }
+
+    // If starts with 7 and 11 digits
+    if (phone.startsWith('7') && phone.length == 11) {
+      variations.add('+' + phone);
+      variations.add(phone);
+    }
+
+    // If 10 digits, might be Russian without country code
+    if (phone.length == 10 && !phone.startsWith('0')) {
+      variations.add('+7' + phone);
+      variations.add('7' + phone);
+      variations.add('8' + phone);
+    }
+
+    return variations.toSet().toList(); // Remove duplicates
+  }
+
   // Check contacts in Firebase to see if they are registered or invited
   Future<void> checkContactsInFirebase(phoneNo) async {
     // Clear previous data before fetching new contacts
@@ -203,12 +243,17 @@ class ContactProvider extends ChangeNotifier {
     _invitedContacts.clear();
     notifyListeners();
 
-    List<String> myArray = _allContacts
-        .asMap()
-        .entries
-        .toList()
-        .map((e) => e.value.phones[0].number.replaceAll(" ", "").toString())
-        .toList();
+    // Create a list of all phone number variations for each contact
+    List<String> myArray = [];
+    for (var contact in _allContacts) {
+      if (contact.phones.isNotEmpty) {
+        String rawPhone = contact.phones[0].number;
+        List<String> variations = _normalizePhoneNumber(rawPhone);
+        myArray.addAll(variations);
+      }
+    }
+
+    log("Total phone variations for Firebase query: ${myArray.length}");
     List<List<String>> chunkList = divideIntoChuncks(myArray, 10);
     log("chunkList ;$chunkList");
     List<List<List<String>>> listGroup = divideIntoChuncksGroup(chunkList, 150);
@@ -252,36 +297,43 @@ class ContactProvider extends ChangeNotifier {
         }
       }
     }
-    log("registeredContacts :${_invitedContacts.length}");
+    log("registeredContacts after Firebase query: ${_registeredContacts.length}");
 
+    // Now check which contacts from phone are not registered
     for (var c in _allContacts) {
-      int index = registeredContacts.indexWhere((element) {
-        return element.phone!.contains(c.phones[0].number.replaceAll(" ", ""));
+      if (c.phones.isEmpty) continue;
+
+      String contactPhone = c.phones[0].number;
+      List<String> contactPhoneVariations = _normalizePhoneNumber(contactPhone);
+
+      // Check if any variation of this contact's phone matches any registered contact
+      bool isRegistered = registeredContacts.any((element) {
+        if (element.phone == null) return false;
+        List<String> registeredPhoneVariations = _normalizePhoneNumber(element.phone!);
+
+        // Check if any variation of contact phone matches any variation of registered phone
+        return contactPhoneVariations.any((contactVar) =>
+            registeredPhoneVariations.any((regVar) => contactVar == regVar));
       });
-      if (registeredContacts
-          .where((element) => element.phone!
-          .replaceAll(" ", "")
-          .contains(c.phones[0].number.replaceAll(" ", "")))
-          .isEmpty) {
-        if (_invitedContacts
-            .where((element) => element.phone.contains(c.phones[0].number))
-            .isEmpty) {
-          UnregisterUser unregisterUser =
-          UnregisterUser(name: c.displayName, phone: c.phones[0].number);
-          if (!_invitedContacts.contains(unregisterUser)) {
-            _invitedContacts.add(unregisterUser);
-          }
-        }
-      } else {
-        if (_invitedContacts.isNotEmpty) {
-          if (index >= 0) {
-            _invitedContacts.removeAt(index);
-          }
+
+      if (!isRegistered) {
+        // Contact is not registered, add to invited list
+        bool alreadyInInvited = _invitedContacts.any((element) {
+          List<String> invitedPhoneVariations = _normalizePhoneNumber(element.phone);
+          return contactPhoneVariations.any((contactVar) =>
+              invitedPhoneVariations.any((invVar) => contactVar == invVar));
+        });
+
+        if (!alreadyInInvited) {
+          UnregisterUser unregisterUser = UnregisterUser(
+            name: c.displayName,
+            phone: contactPhone,
+          );
+          _invitedContacts.add(unregisterUser);
         }
       }
-
-      notifyListeners();
     }
+
     log("invitedContacts ;${_invitedContacts.length}");
 
     // Save the results to local storage

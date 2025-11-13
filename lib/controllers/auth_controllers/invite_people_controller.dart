@@ -86,7 +86,7 @@ class InvitePeopleController extends GetxController {
   onInvitePeople({number}) async {
     try {
       Share.share(
-          "Let's chat on Z ! It's a fast, simple, and secure app we can use to message and call our friends for free.https://play.google.com/store/apps/details?id=com.webiots.Z");
+          "Давай пообщаемся в Z! Это быстрое и простое, с помощью которого мы можем бесплатно отправлять сообщения и звонить друг другу. https://play.google.com/store/apps/details?id=com.webiots.Z");
     } catch (e) {
       flutterAlertMessage(msg: "$e");
     }

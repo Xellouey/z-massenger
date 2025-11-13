@@ -55,9 +55,9 @@ void main() async {
       // Получаем и логируем токен
       try {
         final token = await FirebaseAppCheck.instance.getToken();
-        log('=== APP CHECK DEBUG TOKEN ===> ${token}');
+        log('=== ОТЛАДОЧНЫЙ ТОКЕН APP CHECK ===> ${token}');
       } catch (e) {
-        log('⚠️ App Check token error (add token to Firebase Console): $e');
+        log('⚠️ Ошибка токена App Check (добавьте токен в Firebase Console): $e');
       }
     } else {
       // В release режиме используем Play Integrity
@@ -67,7 +67,7 @@ void main() async {
       );
     }
   } catch (e) {
-    log('⚠️ App Check initialization error: $e');
+    log('⚠️ Ошибка инициализации App Check: $e');
     // Продолжаем работу без App Check
   }
 
@@ -174,7 +174,7 @@ class _MyAppState extends State<MyApp> {
             ),
           );
         } else {
-          log("NO DATA ");
+          log('Нет данных');
           return MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => RecentChatController()),
@@ -234,24 +234,27 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     );
   }
 
-  log('🔔 Background notification received: ${message.data}');
+  log('🔔 Получено фоновое уведомление: ${message.data}');
 
   // Determine if this is a call notification
-  final isCall = message.data['title'] == 'Incoming Audio Call...' ||
-      message.data['title'] == 'Incoming Video Call...';
+  final title = message.data['title'] as String?;
+  final isCall = title == 'Incoming Audio Call...' ||
+      title == 'Incoming Video Call...' ||
+      title == 'Входящий аудиозвонок...' ||
+      title == 'Входящий видеозвонок...';
 
   // Use the correct channel ID that matches notification_controller.dart and strings.xml
   final channelId = isCall ? 'call_channel' : 'high_importance_channel';
   final soundName = isCall ? 'callsound' : 'message';
 
-  log('🔔 Using channel: $channelId, sound: $soundName');
+  log('🔔 Используем канал: $channelId, звук: $soundName');
 
   AndroidNotificationChannel channel = AndroidNotificationChannel(
     channelId,
-    isCall ? 'Call Notifications' : 'High Importance Notifications',
+    isCall ? 'Уведомления о звонках' : 'Важные уведомления',
     description: isCall
-        ? 'This channel is used for call notifications.'
-        : 'This channel is used for message notifications.',
+        ? 'Этот канал используется для уведомлений о звонках.'
+        : 'Этот канал используется для уведомлений о сообщениях.',
     playSound: true,
     importance: Importance.max,
     sound: RawResourceAndroidNotificationSound(soundName),

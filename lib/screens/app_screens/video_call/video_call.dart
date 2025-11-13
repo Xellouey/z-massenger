@@ -64,8 +64,8 @@ class _VideoCallState extends State<VideoCall>
       debugPrint("Error initializing Agora: $e");
       // Показываем ошибку пользователю
       Get.snackbar(
-        'Connection Error',
-        'Failed to initialize video call. Please try again.',
+        appFonts.connectionError.tr,
+        appFonts.videoCallInitError.tr,
         snackPosition: SnackPosition.BOTTOM,
       );
     }
@@ -164,7 +164,7 @@ class _VideoCallState extends State<VideoCall>
                                   if (snapshot.hasData)
                                     snapshot.data!.data() == null
                                         ? Text(
-                                      "Ringing...",
+                                      "Вызов...",
                                       style: AppCss.manropeblack14
                                           .textColor(
                                           appCtrl.appTheme.primary),

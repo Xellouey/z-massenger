@@ -372,8 +372,8 @@ class CallListController extends GetxController {
             if (isVideoCall == false) {
               firebaseCtrl.sendNotification(
                   notificationType: 'call',
-                  title: "Incoming Audio Call...",
-                  msg: "${call.callerName} audio call",
+                  title: "Входящий аудиозвонок...",
+                  msg: "${call.callerName} звонит!",
                   token: call.receiverToken,
                   pName: call.callerName,
                   image: userData["image"],
@@ -387,8 +387,8 @@ class CallListController extends GetxController {
             } else {
               firebaseCtrl.sendNotification(
                   notificationType: 'call',
-                  title: "Incoming Video Call...",
-                  msg: "${call.callerName} video call",
+                  title: "Входящий видеозвонок...",
+                  msg: "${call.callerName} звонит!",
                   token: call.receiverToken,
                   pName: call.callerName,
                   image: userData["image"],
@@ -405,7 +405,7 @@ class CallListController extends GetxController {
           });
         });
       } else {
-        Fluttertoast.showToast(msg: "Failed to call");
+        Fluttertoast.showToast(msg: "Не удалось позвонить");
       }
     } on FirebaseException catch (e) {
       // Caught an exception from Firebase.

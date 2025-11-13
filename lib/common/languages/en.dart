@@ -281,4 +281,11 @@ final dynamic en = {
   "deleteFromAll": "Delete from all",
   "unLock": "Unlock Chat",
   "lock": "Lock Chat",
+
+  // Call-related strings
+  "callYouLater": "Call you later",
+  "connectionError": "Connection Error",
+  "audioCallInitError": "Failed to initialize audio call. Please try again.",
+  "videoCallInitError": "Failed to initialize video call. Please try again.",
+  "cannotCallYourself": "You cannot call yourself",
 };

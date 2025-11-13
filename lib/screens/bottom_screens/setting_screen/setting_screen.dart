@@ -1,6 +1,3 @@
-import 'dart:developer';
-
-import 'package:flutter/services.dart';
 import '../../../config.dart';
 import '../../../controllers/bottom_controllers/setting_controller.dart';
 import 'layouts/setting_layout.dart';
@@ -37,10 +34,7 @@ class SettingScreen extends StatelessWidget {
                                     index: e.key,
                                     onChanged: (value) =>
                                         settingCtrl.onChange(value, e.value),
-                                    value: e.value['title'] == appFonts.rtl
-                                        ? appCtrl.isRTL
-                                        : e.value['title'] ==
-                                                appFonts.fingerLock
+                                    value: e.value['title'] == appFonts.fingerLock
                                             ? appCtrl.isBiometric
                                             : appCtrl.isTheme,
                                     onTap: () =>
@@ -50,9 +44,7 @@ class SettingScreen extends StatelessWidget {
                                 index: e.key,
                                 onChanged: (value) =>
                                     settingCtrl.onChange(value, e.value),
-                                value: e.value['title'] == appFonts.rtl
-                                    ? appCtrl.isRTL
-                                    : e.value['title'] == appFonts.fingerLock
+                                value: e.value['title'] == appFonts.fingerLock
                                         ? appCtrl.isBiometric
                                         : appCtrl.isTheme,
                                 onTap: () => settingCtrl.onSettingTap(e.value)))

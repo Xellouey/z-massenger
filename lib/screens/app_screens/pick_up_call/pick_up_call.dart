@@ -1,8 +1,5 @@
 import 'dart:developer';
 import 'package:camera/camera.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:get/get.dart';
 import 'package:vibration/vibration.dart';
 import 'package:chatzy/screens/app_screens/pick_up_call/pick_up_body.dart';
 import 'package:chatzy/models/call_model.dart';
@@ -153,14 +150,20 @@ class _PickupLayoutState extends State<PickupLayout>
           return widget.scaffold;
         }
 
-        // Start vibration for incoming call
-        if (!isVibrating) {
+        Call call = Call.fromMap(callData);
+
+        // Start vibration ONLY for incoming calls (not outgoing)
+        // Incoming call: receiverId is current user
+        // Outgoing call: callerId is current user
+        final isIncomingCall = call.receiverId == appCtrl.user["id"];
+        if (isIncomingCall && !isVibrating) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _startVibration();
           });
+        } else if (!isIncomingCall && isVibrating) {
+          // Stop vibration if it's an outgoing call
+          _stopVibration();
         }
-
-        Call call = Call.fromMap(callData);
         if (call.isVideoCall == true &&
             cameraController == null &&
             isCameraInitialized &&

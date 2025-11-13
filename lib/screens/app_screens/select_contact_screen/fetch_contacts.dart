@@ -6,7 +6,6 @@ import '../../../controllers/common_controllers/contact_controller.dart';
 import '../../../controllers/common_controllers/contact_controller.dart' as cn;
 import '../../../controllers/recent_chat_controller.dart';
 import '../../../models/status_model.dart';
-import '../../../widgets/common_loader.dart';
 import 'layouts/list_tile_layout.dart';
 
 class FetchContact extends StatefulWidget {
@@ -29,6 +28,31 @@ class _FetchContactState extends State<FetchContact> {
   void initState() {
     var data = Get.arguments;
     isSelected = data ?? false;
+
+    // Automatically fetch/refresh contacts when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final contactProvider = Provider.of<ContactProvider>(context, listen: false);
+
+      if (appCtrl.user != null && appCtrl.user["phone"] != null) {
+        // Check if contacts are already loaded
+        bool hasLocalContacts = await contactProvider.checkForLocalSaveOrNot();
+
+        if (!hasLocalContacts || contactProvider.registeredContacts.isEmpty) {
+          // No local data or empty list, fetch fresh data
+          log("No local contacts found, fetching from Firebase...");
+          contactProvider.fetchContacts(appCtrl.user["phone"]);
+        } else {
+          // Load from local storage first for instant display
+          log("Loading contacts from local storage...");
+          await contactProvider.loadContactsFromLocal();
+
+          // Then refresh in background to get latest data
+          log("Refreshing contacts in background...");
+          contactProvider.fetchContacts(appCtrl.user["phone"]);
+        }
+      }
+    });
+
     setState(() {});
     super.initState();
   }
