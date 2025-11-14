@@ -562,7 +562,9 @@ class CustomNotificationController extends GetxController {
   void handleMessage(RemoteMessage message) async {
     final notificationData = message.data;
     final isCall = notificationData['title'] == 'Incoming Video Call...' ||
-        notificationData['title'] == 'Incoming Audio Call...';
+        notificationData['title'] == 'Incoming Audio Call...' ||
+        notificationData['title'] == 'Входящий видеозвонок...' ||
+        notificationData['title'] == 'Входящий аудиозвонок...';
 
     debugPrint('📨 handleMessage called:');
     debugPrint('   notificationData: ${jsonEncode(notificationData)}');
@@ -730,7 +732,9 @@ class CustomNotificationController extends GetxController {
         'You have a new message';
 
     final isCall = notificationData['title'] == 'Incoming Video Call...' ||
-        notificationData['title'] == 'Incoming Audio Call...';
+        notificationData['title'] == 'Incoming Audio Call...' ||
+        notificationData['title'] == 'Входящий видеозвонок...' ||
+        notificationData['title'] == 'Входящий аудиозвонок...';
 
     final channel = isCall ? callChannel! : messageChannel!;
     final soundName = isCall ? 'callsound' : 'message';
