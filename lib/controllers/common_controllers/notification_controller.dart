@@ -353,11 +353,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config.dart';
 
 class CustomNotificationController extends GetxController {
@@ -565,23 +561,12 @@ class CustomNotificationController extends GetxController {
   /// Handle incoming messages
   void handleMessage(RemoteMessage message) async {
     final notificationData = message.data;
-    final title = message.notification?.title ??
-        notificationData['name'] ??
-        'New Notification';
-    // final body = message.notification?.body ??
-    //     notificationData['body'] ??
-    //     'You have a new message';
     final isCall = notificationData['title'] == 'Incoming Video Call...' ||
         notificationData['title'] == 'Incoming Audio Call...';
 
-    debugPrint('notificationData: ${jsonEncode(notificationData)}');
-
-    // Suppress call notifications in background
-    if (isCall &&
-        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-      debugPrint('Suppressing call notification in background: $title');
-      return;
-    }
+    debugPrint('📨 handleMessage called:');
+    debugPrint('   notificationData: ${jsonEncode(notificationData)}');
+    debugPrint('   isCall: $isCall');
 
     // Clear notifications for call end
     if (notificationData['title'] == 'Call Ended' ||
@@ -611,13 +596,35 @@ class CustomNotificationController extends GetxController {
             notificationData['userContact'] != null) {
           debugPrint(
               "notification notificationData:: ${notificationData['chatId']} ${notificationData['userContact']}");
-          final data = {
-            'chatId': notificationData['chatId'],
-            'data': notificationData['userContact'],
-            'messageId': notificationData['messageId'] ?? '',
-          };
-          log("dta notification $data");
-          Get.toNamed(routeName.chatLayout, arguments: data);
+
+          // Parse userContact from JSON string to UserContactModel
+          UserContactModel? userContact;
+          try {
+            if (notificationData['userContact'] is String) {
+              // If it's a JSON string, decode it
+              final userContactJson = jsonDecode(notificationData['userContact']);
+              userContact = UserContactModel.fromJson(userContactJson);
+              debugPrint("Parsed userContact from JSON string: ${userContact.username}");
+            } else if (notificationData['userContact'] is Map) {
+              // If it's already a Map, use it directly
+              userContact = UserContactModel.fromJson(notificationData['userContact']);
+              debugPrint("Parsed userContact from Map: ${userContact.username}");
+            }
+          } catch (e) {
+            debugPrint('Error parsing userContact: $e');
+          }
+
+          if (userContact != null) {
+            final data = {
+              'chatId': notificationData['chatId'],
+              'data': userContact,
+              'messageId': notificationData['messageId'] ?? '',
+            };
+            log("dta notification $data");
+            Get.toNamed(routeName.chatLayout, arguments: data);
+          } else {
+            debugPrint('Failed to parse userContact, cannot navigate to chat');
+          }
         } else {
           debugPrint(
               'Missing fields in notification data: chatId=${notificationData['chatId']}, userContact=${notificationData['userContact']}, messageId=${notificationData['messageId']}');
@@ -749,6 +756,11 @@ class CustomNotificationController extends GetxController {
       fullScreenIntent: isCall,
       enableVibration: true,
       enableLights: true,
+      // Additional settings for call notifications
+      category: isCall ? AndroidNotificationCategory.call : AndroidNotificationCategory.message,
+      ongoing: isCall, // Make call notifications persistent
+      autoCancel: !isCall, // Don't auto-cancel call notifications
+      timeoutAfter: isCall ? 60000 : null, // Call notifications timeout after 60 seconds
     );
 
     final iosDetails = DarwinNotificationDetails(
@@ -836,19 +848,40 @@ class CustomNotificationController extends GetxController {
             .then((value) => Get.toNamed(routeName.groupChatMessage,
             arguments: value.data()));
       } else if (data['chatId'] != null && data['userContact'] != null) {
-        final navData = {
-          'chatId': data['chatId'],
-          'data': data['userContact'],
-          'messageId': data['messageId'],
-        };
-        debugPrint('Navigating to chat with navData: $navData');
-
-        if (appCtrl.user != null && appCtrl.user['id'] != null) {
-          markMessagesAsSeen(
-              data['chatId'], data['messageId'], appCtrl.user['id']);
+        // Parse userContact from JSON string to UserContactModel
+        UserContactModel? userContact;
+        try {
+          if (data['userContact'] is String) {
+            // If it's a JSON string, decode it
+            final userContactJson = jsonDecode(data['userContact']);
+            userContact = UserContactModel.fromJson(userContactJson);
+            debugPrint("Parsed userContact from JSON string: ${userContact.username}");
+          } else if (data['userContact'] is Map) {
+            // If it's already a Map, use it directly
+            userContact = UserContactModel.fromJson(data['userContact']);
+            debugPrint("Parsed userContact from Map: ${userContact.username}");
+          }
+        } catch (e) {
+          debugPrint('Error parsing userContact in tap handler: $e');
         }
 
-        Get.toNamed(routeName.chatLayout, arguments: navData);
+        if (userContact != null) {
+          final navData = {
+            'chatId': data['chatId'],
+            'data': userContact,
+            'messageId': data['messageId'],
+          };
+          debugPrint('Navigating to chat with navData: $navData');
+
+          if (appCtrl.user != null && appCtrl.user['id'] != null) {
+            markMessagesAsSeen(
+                data['chatId'], data['messageId'], appCtrl.user['id']);
+          }
+
+          Get.toNamed(routeName.chatLayout, arguments: navData);
+        } else {
+          debugPrint('Failed to parse userContact from tap, cannot navigate to chat');
+        }
       } else {
         debugPrint('Missing chatId or userContact in tap payload');
       }

@@ -1783,4 +1783,12 @@ log.log("replyMessage?.senderName::${newMessage?.senderName}");
     );
     update();
   }
+
+  @override
+  void onClose() {
+    // Cancel subscriptions to prevent memory leaks
+    messageSub?.cancel();
+    log.log("GroupChatController: Subscriptions cancelled");
+    super.onClose();
+  }
 }

@@ -82,7 +82,7 @@ class InputBox extends StatelessWidget {
                               chatCtrl.onSendMessage(val, MessageType.gif);
                               chatCtrl.textEditingController.clear();
                             }
-                            chatCtrl.setTyping();
+                            // Removed setTyping() - listener handles this automatically
                           }
                         },
                       ).inkWell(onTap: () => chatCtrl.isShowSticker = false)),

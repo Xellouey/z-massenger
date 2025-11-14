@@ -14,7 +14,11 @@
       "Bash(cmd /c \"if exist android\\app\\src\\main\\res\\drawable\\splash.png (echo File exists) else (echo File not found)\")",
       "Bash(powershell -Command:*)",
       "Bash(flutter analyze:*)",
-      "Bash(Select-String -Pattern \"error|warning\")"
+      "Bash(Select-String -Pattern \"error|warning\")",
+      "Read(//d//**)",
+      "Bash(for file in lib/controllers/app_pages_controllers/video_call_controller.dart lib/controllers/app_pages_controllers/audio_call_controller.dart lib/controllers/app_pages_controllers/broadcast_chat_controller.dart lib/controllers/bottom_controllers/dashboard_controller.dart)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

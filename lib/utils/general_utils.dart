@@ -31,9 +31,39 @@ const String angryFace = "😡";
 const String astonishedFace = "😲";
 const String thumbsUp = "👍";
 
+// Cache for decrypted messages to avoid repeated decryption
+// Key: encrypted content, Value: decrypted content
+final Map<String, String> _decryptionCache = {};
+
+// Maximum cache size to prevent memory issues (keep last 500 messages)
+const int _maxCacheSize = 500;
+
 decryptMessage(content) {
+  // Check cache first
+  if (_decryptionCache.containsKey(content)) {
+    return _decryptionCache[content];
+  }
+
+  // Decrypt and cache
   String decryptedText = decrypt(content);
+
+  // Manage cache size
+  if (_decryptionCache.length >= _maxCacheSize) {
+    // Remove oldest entries (first 100)
+    final keysToRemove = _decryptionCache.keys.take(100).toList();
+    for (var key in keysToRemove) {
+      _decryptionCache.remove(key);
+    }
+  }
+
+  _decryptionCache[content] = decryptedText;
   return decryptedText;
+}
+
+// Clear decryption cache (call when leaving chat or app)
+void clearDecryptionCache() {
+  _decryptionCache.clear();
+  log("Decryption cache cleared (${_decryptionCache.length} entries)");
 }
 
 String decrypt(encryptedData) {

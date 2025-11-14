@@ -156,9 +156,26 @@ class ChatController extends GetxController {
       update();
       getChatData();
     }
+
+    // Set up typing listener ONCE in onReady (not on every keystroke!)
+    _setupTypingListener();
+
     update();
 
     super.onReady();
+  }
+
+  // Setup typing listener only once
+  void _setupTypingListener() {
+    textEditingController.addListener(() {
+      if (textEditingController.text.isNotEmpty && !typing) {
+        firebaseCtrl.setTyping();
+        typing = true;
+      } else if (textEditingController.text.isEmpty && typing) {
+        firebaseCtrl.setIsActive();
+        typing = false;
+      }
+    });
   }
 
   onTapStatus() {
@@ -264,9 +281,18 @@ class ChatController extends GetxController {
         .snapshots()
         .listen((snapshot) {
       if (snapshot.exists) {
-        pData = snapshot.data();
-        log("pData updated (real-time):::$pData");
-        update();
+        final newData = snapshot.data();
+
+        // Only update UI if visually important fields have changed
+        // Ignore frequent updates like lastSeen, typing status, etc.
+        if (pData == null || _shouldUpdateUI(pData, newData)) {
+          pData = newData;
+          log("pData updated (real-time - visual changes only):::$pData");
+          update();
+        } else {
+          // Update data silently without triggering UI rebuild
+          pData = newData;
+        }
       }
     });
 
@@ -473,18 +499,8 @@ class ChatController extends GetxController {
   }*/
 
   //update typing status
-  setTyping() async {
-    textEditingController.addListener(() {
-      if (textEditingController.text.isNotEmpty) {
-        firebaseCtrl.setTyping();
-        typing = true;
-      }
-      if (textEditingController.text.isEmpty && typing == true) {
-        firebaseCtrl.setIsActive();
-        typing = false;
-      }
-    });
-  }
+  // REMOVED: setTyping() was causing massive listener leak
+  // Now using _setupTypingListener() called once in onReady()
 
   //seen all message
   seenMessage() async {
@@ -1875,12 +1891,27 @@ class ChatController extends GetxController {
     update();
   }
 
+  // Helper method to check if UI update is needed
+  bool _shouldUpdateUI(dynamic oldData, dynamic newData) {
+    if (oldData == null || newData == null) return true;
+
+    // Only trigger UI update if these visually important fields change
+    // Ignore frequent updates like lastSeen, typing, etc. to prevent unnecessary rebuilds
+    return oldData['name'] != newData['name'] ||
+           oldData['image'] != newData['image'] ||
+           oldData['statusDesc'] != newData['statusDesc'] ||
+           oldData['phone'] != newData['phone'] ||
+           oldData['status'] != newData['status']; // Online/Offline status
+  }
+
   @override
   void onClose() {
     // Cancel subscriptions to prevent memory leaks
     messageSub?.cancel();
     userDataSub?.cancel();
-    log("ChatController: Subscriptions cancelled");
+    // Remove text controller listener
+    textEditingController.dispose();
+    log("ChatController: Subscriptions and listeners cancelled");
     super.onClose();
   }
 }

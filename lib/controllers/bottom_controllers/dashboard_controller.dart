@@ -393,4 +393,12 @@ class DashboardController extends GetxController
       update();
     }
   }
+
+  @override
+  void onClose() {
+    // Cancel subscriptions to prevent memory leaks
+    connectivitySubscription.cancel();
+    log("DashboardController: Subscriptions cancelled");
+    super.onClose();
+  }
 }

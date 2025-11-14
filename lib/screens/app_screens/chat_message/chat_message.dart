@@ -36,9 +36,7 @@ class _ChatState extends State<Chat>
   void initState() {
     // TODO: implement initState
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      chatCtrl.setTyping();
-    });
+    // Removed setTyping() call - now handled in ChatController.onReady()
     receiverData = Get.arguments;
     log("receiverData :$receiverData");
     if (receiverData == "No User") {
@@ -61,7 +59,7 @@ class _ChatState extends State<Chat>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       firebaseCtrl.setIsActive();
-      chatCtrl.setTyping();
+      // Removed setTyping() call - listener is already set up once
     } else {
       firebaseCtrl.setLastSeen();
     }

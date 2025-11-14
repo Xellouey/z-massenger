@@ -812,4 +812,12 @@ class BroadcastChatController extends GetxController {
   onEmojiTap(emoji) {
     onSendMessage(emoji, MessageType.text);
   }
+
+  @override
+  void onClose() {
+    // Cancel subscriptions to prevent memory leaks
+    messageSub?.cancel();
+    log("BroadcastChatController: Subscriptions cancelled");
+    super.onClose();
+  }
 }

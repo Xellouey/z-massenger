@@ -755,4 +755,12 @@ class AudioCallController extends GetxController {
     stopTimer();
     _closeCallView(context);
   }
+
+  @override
+  void onClose() {
+    // Cancel subscriptions to prevent memory leaks
+    timerSubscription?.cancel();
+    log("AudioCallController: Subscriptions cancelled");
+    super.onClose();
+  }
 }
