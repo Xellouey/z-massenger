@@ -265,6 +265,7 @@ log.log("call.receiverId::${call.callerPic}///${toData["id"]}");
               Get.toNamed(routeName.audioCall, arguments: data);
             } else {
               firebaseCtrl.sendNotification(
+                  notificationType: 'call',
                   title: "Входящий видеозвонок...",
                   msg: "${call.callerName} звонит!",
                   token: call.receiverToken,
