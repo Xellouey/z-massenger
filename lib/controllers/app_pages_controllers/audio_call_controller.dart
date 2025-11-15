@@ -638,54 +638,47 @@ class AudioCallController extends GetxController {
     return Container();
   }
 
-  //end call and remove
+  //end call and remove - MUST be awaited to ensure calling docs are deleted
   Future<bool> endCall({required Call call}) async {
     try {
+      log("Deleting calling documents for callerId: ${call.callerId} and receiverId: ${call.receiverId}");
 
-      FirebaseFirestore.instance
+      // Delete caller's calling document
+      final callerDocs = await FirebaseFirestore.instance
           .collection(collectionName.calls)
           .doc(call.callerId)
           .collection(collectionName.calling)
           .where("callerId", isEqualTo: call.callerId)
-          .get()
-          .then((value) {
-        if (value.docs.isNotEmpty) {
-          FirebaseFirestore.instance
-              .collection(collectionName.calls)
-              .doc(call.callerId)
-              .collection("calling")
-              .doc(value.docs[0].id)
-              .delete();
-          log("DFFFF:${value.docs[0].id}");
-        }
-      });
-      FirebaseFirestore.instance
+          .get();
+
+      for (var doc in callerDocs.docs) {
+        await doc.reference.delete();
+        log("Deleted caller calling doc: ${doc.id}");
+      }
+
+      // Delete receiver's calling document
+      final receiverDocs = await FirebaseFirestore.instance
           .collection(collectionName.calls)
           .doc(call.receiverId)
           .collection(collectionName.calling)
           .where("receiverId", isEqualTo: call.receiverId)
-          .get()
-          .then((value) {
-        if (value.docs.isNotEmpty) {
-          FirebaseFirestore.instance
-              .collection(collectionName.calls)
-              .doc(call.receiverId)
-              .collection("calling")
-              .doc(value.docs[0].id)
-              .delete();
-          log("DDDDDDDDDDDDD:${value.docs[0].id}");
+          .get();
 
-        }
-      });
+      for (var doc in receiverDocs.docs) {
+        await doc.reference.delete();
+        log("Deleted receiver calling doc: ${doc.id}");
+      }
+
+      log("All calling documents deleted successfully");
       return true;
     } catch (e) {
-      log("error : $e");
+      log("Error deleting calling documents: $e");
       return false;
     }
   }
 
   // Navigate to chat with the other participant
-  void _navigateToChat() {
+  Future<void> _navigateToChat() async {
     if (call == null || userData == null || userData["id"] == null) {
       Get.back();
       return;
@@ -707,16 +700,16 @@ class AudioCallController extends GetxController {
         isRegister: true,
       );
 
-      // Navigate to chat layout
-      // Using chatId: '0' will create a new chat if one doesn't exist
-      Get.offNamedUntil(
-        routeName.chatLayout,
-        (route) => route.settings.name == routeName.dashboard,
-        arguments: {
-          'chatId': '0',
-          'data': userContact,
-        },
-      );
+      // Small delay to ensure Firebase documents are fully deleted
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Navigate to chat layout - go back to dashboard first, then to chat
+      Get.back(); // Close call screen
+      await Future.delayed(const Duration(milliseconds: 100));
+      Get.toNamed(routeName.chatLayout, arguments: {
+        'chatId': '0',
+        'data': userContact,
+      });
     } catch (e) {
       log('Error navigating to chat: $e');
       Get.back();
@@ -726,31 +719,40 @@ class AudioCallController extends GetxController {
   //end call
   Future<void> onCallEnd(BuildContext context) async {
     if (_isEnding) {
-      _navigateToChat();
+      await _navigateToChat();
       return;
     }
 
     _isEnding = true;
     isAlreadyEnded = true;
-    log("endCall1");
-    await _dispose();
+    log("endCall: Starting call end sequence");
 
     DateTime now = DateTime.now();
+
+    // CRITICAL: Delete calling documents FIRST to prevent pickup screen from showing again
+    await endCall(call: call!);
+    log("endCall: Calling documents deleted");
+
+    // Update call history
     if (remoteUId != null) {
-      FirebaseFirestore.instance
-          .collection(collectionName.calls)
-          .doc(call!.callerId)
-          .collection(collectionName.collectionCallHistory)
-          .doc(call!.timestamp.toString())
-          .set({'status': 'ended', 'ended': now}, SetOptions(merge: true));
-      await FirebaseFirestore.instance
-          .collection(collectionName.calls)
-          .doc(call!.receiverId)
-          .collection(collectionName.collectionCallHistory)
-          .doc(call!.timestamp.toString())
-          .set({'status': 'ended', 'ended': now}, SetOptions(merge: true));
+      // Call was answered - update history for both users
+      await Future.wait([
+        FirebaseFirestore.instance
+            .collection(collectionName.calls)
+            .doc(call!.callerId)
+            .collection(collectionName.collectionCallHistory)
+            .doc(call!.timestamp.toString())
+            .set({'status': 'ended', 'ended': now}, SetOptions(merge: true)),
+        FirebaseFirestore.instance
+            .collection(collectionName.calls)
+            .doc(call!.receiverId)
+            .collection(collectionName.collectionCallHistory)
+            .doc(call!.timestamp.toString())
+            .set({'status': 'ended', 'ended': now}, SetOptions(merge: true)),
+      ]);
     } else {
-      await endCall(call: call!).then((value) async {
+      // Call was not answered - create history entries
+      await Future.wait([
         FirebaseFirestore.instance
             .collection(collectionName.calls)
             .doc(call!.callerId)
@@ -770,8 +772,8 @@ class AudioCallController extends GetxController {
           'started': null,
           'callerName': call!.receiverName,
           'status': 'ended',
-          'ended': DateTime.now(),
-        }, SetOptions(merge: true));
+          'ended': now,
+        }, SetOptions(merge: true)),
         FirebaseFirestore.instance
             .collection(collectionName.calls)
             .doc(call!.receiverId)
@@ -792,14 +794,20 @@ class AudioCallController extends GetxController {
           'callerName': call!.callerName,
           'status': 'ended',
           'ended': now
-        }, SetOptions(merge: true));
-      });
+        }, SetOptions(merge: true)),
+      ]);
     }
-    update();
-    log("endCall");
+
+    // Cleanup resources
+    await _dispose();
     WakelockPlus.disable();
     stopTimer();
-    _navigateToChat();
+    update();
+
+    log("endCall: Cleanup complete, navigating to chat");
+
+    // Navigate to chat
+    await _navigateToChat();
   }
 
   @override

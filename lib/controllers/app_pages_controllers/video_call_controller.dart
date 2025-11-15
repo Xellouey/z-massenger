@@ -795,133 +795,64 @@ class VideoCallController extends GetxController {
     }
   }
 
+  //end call and remove calling documents - MUST be awaited
   Future<bool> endCall({required Call call}) async {
     try {
+      log("Deleting calling documents for channelId: ${call.channelId}");
       final firestore = FirebaseFirestore.instance;
-      await firestore.runTransaction((transaction) async {
-        // Delete caller’s active call
-        final callerCallQuery = firestore
-            .collection(collectionName.calls)
-            .doc(call.callerId)
-            .collection(collectionName.calling)
-            .where('channelId', isEqualTo: call.channelId);
-        final callerCallDocs = await callerCallQuery.get();
-        for (var doc in callerCallDocs.docs) {
-          transaction.delete(doc.reference);
-        }
 
-        // Update caller’s call history
-        final callerHistoryRef = firestore
-            .collection(collectionName.calls)
-            .doc(call.callerId)
-            .collection(collectionName.collectionCallHistory)
-            .doc(call.timestamp.toString());
-        transaction.set(
-          callerHistoryRef,
-          {
-            'type': 'outGoing',
-            'isVideoCall': call.isVideoCall,
-            'id': call.receiverId,
-            'timestamp': call.timestamp,
-            'dp': call.receiverPic,
-            'isMuted': false,
-            'receiverId': call.receiverId,
-            'isJoin': false,
-            'started': null,
-            'callerName': call.receiverName,
-            'status': 'ended',
-            'ended': DateTime.now(),
-          },
-          SetOptions(merge: true),
-        );
+      // Delete caller's calling document
+      final callerCallQuery = firestore
+          .collection(collectionName.calls)
+          .doc(call.callerId)
+          .collection(collectionName.calling)
+          .where('channelId', isEqualTo: call.channelId);
+      final callerCallDocs = await callerCallQuery.get();
+      for (var doc in callerCallDocs.docs) {
+        await doc.reference.delete();
+        log("Deleted caller calling doc: ${doc.id}");
+      }
 
-        // Handle receivers (group or one-on-one)
-        if (call.receiver != null) {
-          // Group call
-          for (var receiver in call.receiver!) {
-            final receiverId = receiver['id'];
-            final receiverCallQuery = firestore
-                .collection(collectionName.calls)
-                .doc(receiverId)
-                .collection(collectionName.calling)
-                .where('channelId', isEqualTo: call.channelId);
-            final receiverCallDocs = await receiverCallQuery.get();
-            for (var doc in receiverCallDocs.docs) {
-              transaction.delete(doc.reference);
-            }
-
-            final receiverHistoryRef = firestore
-                .collection(collectionName.calls)
-                .doc(receiverId)
-                .collection(collectionName.collectionCallHistory)
-                .doc(call.timestamp.toString());
-            transaction.set(
-              receiverHistoryRef,
-              {
-                'type': 'INCOMING',
-                'isVideoCall': call.isVideoCall,
-                'id': call.callerId,
-                'timestamp': call.timestamp,
-                'dp': call.callerPic,
-                'isMuted': false,
-                'receiverId': receiverId,
-                'isJoin': true,
-                'started': null,
-                'callerName': call.callerName,
-                'status': 'ended',
-                'ended': DateTime.now(),
-              },
-              SetOptions(merge: true),
-            );
-          }
-        } else {
-          // One-on-one call
+      // Delete receiver's calling documents (handle both group and one-on-one)
+      if (call.receiver != null) {
+        // Group call
+        for (var receiver in call.receiver!) {
+          final receiverId = receiver['id'];
           final receiverCallQuery = firestore
               .collection(collectionName.calls)
-              .doc(call.receiverId)
+              .doc(receiverId)
               .collection(collectionName.calling)
               .where('channelId', isEqualTo: call.channelId);
           final receiverCallDocs = await receiverCallQuery.get();
           for (var doc in receiverCallDocs.docs) {
-            transaction.delete(doc.reference);
+            await doc.reference.delete();
+            log("Deleted receiver calling doc for $receiverId: ${doc.id}");
           }
-
-          final receiverHistoryRef = firestore
-              .collection(collectionName.calls)
-              .doc(call.receiverId)
-              .collection(collectionName.collectionCallHistory)
-              .doc(call.timestamp.toString());
-          transaction.set(
-            receiverHistoryRef,
-            {
-              'type': 'INCOMING',
-              'isVideoCall': call.isVideoCall,
-              'id': call.callerId,
-              'timestamp': call.timestamp,
-              'dp': call.callerPic,
-              'isMuted': false,
-              'receiverId': call.receiverId,
-              'isJoin': true,
-              'started': null,
-              'callerName': call.callerName,
-              'status': 'ended',
-              'ended': DateTime.now(),
-            },
-            SetOptions(merge: true),
-          );
         }
-      });
-      stopTimer();
-      log('Call ended successfully');
+      } else {
+        // One-on-one call
+        final receiverCallQuery = firestore
+            .collection(collectionName.calls)
+            .doc(call.receiverId)
+            .collection(collectionName.calling)
+            .where('channelId', isEqualTo: call.channelId);
+        final receiverCallDocs = await receiverCallQuery.get();
+        for (var doc in receiverCallDocs.docs) {
+          await doc.reference.delete();
+          log("Deleted receiver calling doc: ${doc.id}");
+        }
+      }
+
+      log("All calling documents deleted successfully");
       return true;
     } catch (e) {
-      log('Error ending call: $e');
+      log('Error deleting calling documents: $e');
       return false;
     }
   }
 
   // Navigate to chat with the other participant
-  void _navigateToChat() {
+  Future<void> _navigateToChat() async {
     if (call == null || userData == null || userData["id"] == null) {
       Get.back();
       return;
@@ -943,16 +874,16 @@ class VideoCallController extends GetxController {
         isRegister: true,
       );
 
-      // Navigate to chat layout
-      // Using chatId: '0' will create a new chat if one doesn't exist
-      Get.offNamedUntil(
-        routeName.chatLayout,
-        (route) => route.settings.name == routeName.dashboard,
-        arguments: {
-          'chatId': '0',
-          'data': userContact,
-        },
-      );
+      // Small delay to ensure Firebase documents are fully deleted
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Navigate to chat layout - go back to dashboard first, then to chat
+      Get.back(); // Close call screen
+      await Future.delayed(const Duration(milliseconds: 100));
+      Get.toNamed(routeName.chatLayout, arguments: {
+        'chatId': '0',
+        'data': userContact,
+      });
     } catch (e) {
       log('Error navigating to chat: $e');
       Get.back();
@@ -961,21 +892,84 @@ class VideoCallController extends GetxController {
 
   Future<void> onCallEnd(BuildContext context) async {
     if (call == null) return;
-    stopTimer();
-    await endCall(call: call!);
-    await engine.leaveChannel();
+    if (isAlreadyEndedCall) {
+      await _navigateToChat();
+      return;
+    }
 
+    isAlreadyEndedCall = true;
+    log("onCallEnd: Starting call end sequence");
+
+    DateTime now = DateTime.now();
+
+    // CRITICAL: Delete calling documents FIRST to prevent pickup screen from showing again
+    await endCall(call: call!);
+    log("onCallEnd: Calling documents deleted");
+
+    // Update call history
+    if (remoteUId != null) {
+      // Call was answered - update history for both users
+      final historyUpdates = <Future>[];
+
+      historyUpdates.add(
+        FirebaseFirestore.instance
+            .collection(collectionName.calls)
+            .doc(call!.callerId)
+            .collection(collectionName.collectionCallHistory)
+            .doc(call!.timestamp.toString())
+            .set({
+          'status': 'ended',
+          'ended': now
+        }, SetOptions(merge: true))
+      );
+
+      if (call!.receiver != null) {
+        // Group call
+        for (var receiver in call!.receiver!) {
+          historyUpdates.add(
+            FirebaseFirestore.instance
+                .collection(collectionName.calls)
+                .doc(receiver['id'])
+                .collection(collectionName.collectionCallHistory)
+                .doc(call!.timestamp.toString())
+                .set({
+              'status': 'ended',
+              'ended': now
+            }, SetOptions(merge: true))
+          );
+        }
+      } else {
+        historyUpdates.add(
+          FirebaseFirestore.instance
+              .collection(collectionName.calls)
+              .doc(call!.receiverId)
+              .collection(collectionName.collectionCallHistory)
+              .doc(call!.timestamp.toString())
+              .set({
+            'status': 'ended',
+            'ended': now
+          }, SetOptions(merge: true))
+        );
+      }
+
+      await Future.wait(historyUpdates);
+    }
+
+    // Cleanup resources
+    await engine.leaveChannel();
+    stopTimer();
     remoteUId = null;
     channelName = '';
     users.clear();
     localUserJoined = false;
-    update();
     _dispose();
     WakelockPlus.disable();
+    update();
 
-    _navigateToChat();
+    log("onCallEnd: Cleanup complete, navigating to chat");
 
-    log('Call ended and navigated to chat');
+    // Navigate to chat
+    await _navigateToChat();
   }
 
 }
