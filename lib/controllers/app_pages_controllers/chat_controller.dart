@@ -316,9 +316,13 @@ class ChatController extends GetxController {
       isBlock = false;
     }
     update();
-    if (data["message"] != null && data['message'] != "") {
+    // Safe check for message parameter to prevent NoSuchMethodError crash
+    if (data != null &&
+        data.containsKey("message") &&
+        data["message"] != null &&
+        data['message'] != "") {
       log("CHECKKKKK");
-      if (data["isCallEnd"] != null) {
+      if (data.containsKey("isCallEnd") && data["isCallEnd"] != null) {
         onSendMessage(data["message"], MessageType.text);
       } else {
         log("CHECKKKKK::${data["message"]}");
@@ -334,8 +338,12 @@ class ChatController extends GetxController {
       }
     }
 
-    log("FORWARD :${data["forwardMessage"]}");
-    if (data["forwardMessage"] != null && data['forwardMessage'] != "") {
+    log("FORWARD :${data != null && data.containsKey("forwardMessage") ? data["forwardMessage"] : null}");
+    // Safe check for forwardMessage parameter to prevent NoSuchMethodError crash
+    if (data != null &&
+        data.containsKey("forwardMessage") &&
+        data["forwardMessage"] != null &&
+        data['forwardMessage'] != "") {
       List forwardList = data["forwardMessage"];
       for (var d in forwardList) {
         MessageModel messageModel = d;

@@ -893,7 +893,7 @@ class VideoCallController extends GetxController {
   Future<void> onCallEnd(BuildContext context) async {
     if (call == null) return;
     if (isAlreadyEndedCall) {
-      await _navigateToChat();
+      Get.offAllNamed(routeName.dashboard);
       return;
     }
 
@@ -966,10 +966,10 @@ class VideoCallController extends GetxController {
     WakelockPlus.disable();
     update();
 
-    log("onCallEnd: Cleanup complete, navigating to chat");
+    log("onCallEnd: Cleanup complete, navigating to dashboard");
 
-    // Navigate to chat
-    await _navigateToChat();
+    // Navigate to dashboard (chat list)
+    Get.offAllNamed(routeName.dashboard);
   }
 
 }
