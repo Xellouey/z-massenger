@@ -86,7 +86,6 @@ class PickupBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    log('PickupBody: callerName=${call!.callerName}, isVideoCall=${call!.isVideoCall}');
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: ExpandableFab(

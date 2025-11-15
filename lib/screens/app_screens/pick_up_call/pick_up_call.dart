@@ -124,18 +124,17 @@ class _PickupLayoutState extends State<PickupLayout>
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
+        // Return scaffold immediately if no data, empty, or call ended
         if (!snapshot.hasData ||
             snapshot.data!.docs.isEmpty ||
             isCallEnded) {
-          // Stop vibration when there's no incoming call
           if (isVibrating) {
             _stopVibration();
           }
           return widget.scaffold;
         }
-        final callData =
-        snapshot.data!.docs[0].data() as Map<String, dynamic>;
-        log('Call data: $callData');
+
+        final callData = snapshot.data!.docs[0].data() as Map<String, dynamic>;
 
         // Check if call has ended status - prevents flash of pickup screen
         if (callData['status'] == 'ended') {
