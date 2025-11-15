@@ -804,10 +804,10 @@ class AudioCallController extends GetxController {
     stopTimer();
     update();
 
-    log("endCall: Cleanup complete, navigating to chat");
+    log("endCall: Cleanup complete, navigating to dashboard");
 
-    // Navigate to chat
-    await _navigateToChat();
+    // Navigate to dashboard (chat list)
+    Get.offAllNamed(routeName.dashboard);
   }
 
   @override

@@ -125,6 +125,14 @@ class PickupBody extends StatelessWidget {
             // Stop vibration when call is accepted
             await Vibration.cancel();
 
+            // Stop ringtone by cancelling notification
+            try {
+              final noti = Get.find<CustomNotificationController>();
+              await noti.cancelAllNotifications();
+            } catch (e) {
+              log('❌ Error cancelling notifications: $e');
+            }
+
             // Показываем индикатор загрузки
             Get.dialog(
               const Center(
@@ -360,7 +368,11 @@ class PickupBody extends StatelessWidget {
                           ),
                           const VSpace(Sizes.s40),
                           Text(
-                            '${call!.receiverName} Audio Call',
+                            call!.isGroup == true
+                                ? '${call!.groupName!} Audio Call'
+                                : call!.callerId == appCtrl.user["id"]
+                                ? '${call!.receiverName!} Audio Call'
+                                : '${call!.callerName!} Audio Call',
                             style: AppCss.manropeblack20
                                 .textColor(appCtrl.appTheme.black),
                           ),

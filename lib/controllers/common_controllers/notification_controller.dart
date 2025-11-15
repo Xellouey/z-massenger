@@ -797,6 +797,16 @@ class CustomNotificationController extends GetxController {
     }
   }
 
+  /// Cancel all active notifications
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _flutterLocalNotificationsPlugin.cancelAll();
+      debugPrint('✅ All notifications cancelled');
+    } catch (e) {
+      debugPrint('❌ Error cancelling notifications: $e');
+    }
+  }
+
   /// Mark messages as seen in Firestore
   Future<void> markMessagesAsSeen(
       String chatId, String? messageId, String currentUserId) async {
