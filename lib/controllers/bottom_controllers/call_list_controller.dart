@@ -260,7 +260,6 @@ class CallListController extends GetxController {
             }
           }
           update();
-          Get.forceAppUpdate();
         }
       });
     } else {
@@ -308,6 +307,35 @@ class CallListController extends GetxController {
 
       int timestamp = DateTime.now().millisecondsSinceEpoch;
 
+      // Получаем свежий pushToken получателя из Firestore
+      String? freshReceiverToken;
+      try {
+        final receiverDoc = await FirebaseFirestore.instance
+            .collection(collectionName.users)
+            .doc(toData["id"])
+            .get();
+
+        if (receiverDoc.exists && receiverDoc.data() != null) {
+          freshReceiverToken = receiverDoc.data()!["pushToken"];
+          log("Fresh receiver token obtained: ${freshReceiverToken != null}");
+        } else {
+          log("WARNING: Receiver document not found!");
+          Fluttertoast.showToast(msg: "Пользователь не найден");
+          return;
+        }
+      } catch (e) {
+        log("ERROR getting fresh receiver token: $e");
+        // Используем fallback токен
+        freshReceiverToken = toData["pushToken"];
+      }
+
+      // Проверяем наличие токена
+      if (freshReceiverToken == null || freshReceiverToken.isEmpty) {
+        log("ERROR: Receiver has no push token!");
+        Fluttertoast.showToast(msg: "Не удалось отправить уведомление о звонке");
+        // Не возвращаемся - попробуем позвонить через Firestore
+      }
+
       Map<String, dynamic>? response =
       await firebaseCtrl.getAgoraTokenAndChannelName();
 
@@ -324,32 +352,34 @@ class CallListController extends GetxController {
             receiverName: toData["name"],
             receiverPic: toData["image"],
             callerToken: userData["pushToken"],
-            receiverToken: toData["pushToken"],
+            receiverToken: freshReceiverToken,
             channelId: channelId,
             isVideoCall: isVideoCall,
             agoraToken: token,
             receiver: []);
 
-        await FirebaseFirestore.instance
-            .collection(collectionName.calls)
-            .doc(call.callerId)
-            .collection(collectionName.calling)
-            .add({
-          "timestamp": timestamp,
-          "callerId": userData["id"],
-          "callerName": userData["name"],
-          "callerPic": userData["image"],
-          "receiverId": toData["id"],
-          "receiverName": toData["name"],
-          "receiverPic": toData["image"],
-          "callerToken": userData["pushToken"],
-          "receiverToken": toData["pushToken"],
-          "hasDialled": true,
-          "channelId": channelId,
-          "isVideoCall": isVideoCall,
-          "agoraToken": token,
-        }).then((value) async {
-          await FirebaseFirestore.instance
+        // Используем параллельные записи для ускорения
+        await Future.wait([
+          FirebaseFirestore.instance
+              .collection(collectionName.calls)
+              .doc(call.callerId)
+              .collection(collectionName.calling)
+              .add({
+            "timestamp": timestamp,
+            "callerId": userData["id"],
+            "callerName": userData["name"],
+            "callerPic": userData["image"],
+            "receiverId": toData["id"],
+            "receiverName": toData["name"],
+            "receiverPic": toData["image"],
+            "callerToken": userData["pushToken"],
+            "receiverToken": freshReceiverToken,
+            "hasDialled": true,
+            "channelId": channelId,
+            "isVideoCall": isVideoCall,
+            "agoraToken": token,
+          }),
+          FirebaseFirestore.instance
               .collection(collectionName.calls)
               .doc(call.receiverId)
               .collection(collectionName.calling)
@@ -362,54 +392,76 @@ class CallListController extends GetxController {
             "receiverName": toData["name"],
             "receiverPic": toData["image"],
             "callerToken": userData["pushToken"],
-            "receiverToken": toData["pushToken"],
+            "receiverToken": freshReceiverToken,
             "hasDialled": false,
             "channelId": channelId,
             "isVideoCall": isVideoCall,
             "agoraToken": token,
-          }).then((value) async {
-            call.hasDialled = true;
-            if (isVideoCall == false) {
-              firebaseCtrl.sendNotification(
+          }),
+        ]);
+
+        log("✅ Call records created in Firestore for both users");
+
+        // Отправляем уведомление ТОЛЬКО если есть токен
+        if (freshReceiverToken != null && freshReceiverToken.isNotEmpty) {
+          call.hasDialled = true;
+          if (isVideoCall == false) {
+            try {
+              await firebaseCtrl.sendNotification(
                   notificationType: 'call',
                   title: "Входящий аудиозвонок...",
                   msg: "${call.callerName} звонит!",
-                  token: call.receiverToken,
+                  token: freshReceiverToken,
                   pName: call.callerName,
                   image: userData["image"],
                   dataTitle: call.callerName);
-              var data = {
-                "channelName": call.channelId,
-                "call": call,
-                "token": response["agoraToken"]
-              };
-              Get.toNamed(routeName.audioCall, arguments: data);
-            } else {
-              firebaseCtrl.sendNotification(
+              log("✅ Audio call notification sent successfully");
+            } catch (e) {
+              log("❌ ERROR sending audio call notification: $e");
+            }
+          } else {
+            try {
+              await firebaseCtrl.sendNotification(
                   notificationType: 'call',
                   title: "Входящий видеозвонок...",
                   msg: "${call.callerName} звонит!",
-                  token: call.receiverToken,
+                  token: freshReceiverToken,
                   pName: call.callerName,
                   image: userData["image"],
                   dataTitle: call.callerName);
-
-              var data = {
-                "channelName": call.channelId,
-                "call": call,
-                "token": response["agoraToken"]
-              };
-
-              Get.toNamed(routeName.videoCall, arguments: data);
+              log("✅ Video call notification sent successfully");
+            } catch (e) {
+              log("❌ ERROR sending video call notification: $e");
             }
-          });
-        });
+          }
+        } else {
+          log("⚠️ Skipping notification send - no valid token");
+        }
+
+        // Открываем экран звонка
+        var data = {
+          "channelName": call.channelId,
+          "call": call,
+          "token": response["agoraToken"]
+        };
+
+        Get.toNamed(
+          isVideoCall ? routeName.videoCall : routeName.audioCall,
+          arguments: data
+        );
+
       } else {
+        log("❌ Failed to get Agora token");
         Fluttertoast.showToast(msg: "Не удалось позвонить");
       }
     } on FirebaseException catch (e) {
       // Caught an exception from Firebase.
-      log("Failed with error '${e.code}': ${e.message}");
+      log("❌ Firebase error: '${e.code}': ${e.message}");
+      Fluttertoast.showToast(msg: "Ошибка: ${e.message}");
+    } catch (e, stackTrace) {
+      log("❌ Unexpected error in audioAndVideoCallApi: $e");
+      log("Stack trace: $stackTrace");
+      Fluttertoast.showToast(msg: "Ошибка при инициации звонка");
     }
   }
 

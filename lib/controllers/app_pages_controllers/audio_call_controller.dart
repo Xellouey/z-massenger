@@ -362,7 +362,6 @@ class AudioCallController extends GetxController {
           localUserJoined = true;
           log("userData['id']::${userData["id"]}");
           if (call!.callerId == userData["id"]) {
-            update();
             // Параллельные Firestore записи для уменьшения задержки
             Future.wait([
               FirebaseFirestore.instance
@@ -411,8 +410,11 @@ class AudioCallController extends GetxController {
           }
           WakelockPlus.enable();
           //flutterLocalNotificationsPlugin!.cancelAll();
-          update();
-          Get.forceAppUpdate();
+          // Отложенное обновление UI после завершения построения
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            update();
+            Get.forceAppUpdate();
+          });
         },
         onError: (err, msg) {
           log("ERROORRR : $err");
@@ -422,7 +424,6 @@ class AudioCallController extends GetxController {
           remoteUidValue = remoteUid;
           remoteUId = remoteUid;
           startTimerNow();
-          update();
 
           debugPrint("remote user $remoteUidValue joined");
           if (userData["id"] == call!.callerId) {
@@ -462,8 +463,11 @@ class AudioCallController extends GetxController {
             ]);
           }
           WakelockPlus.enable();
-          update();
-          Get.forceAppUpdate();
+          // Отложенное обновление UI после завершения построения
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            update();
+            Get.forceAppUpdate();
+          });
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) async {
@@ -592,8 +596,11 @@ class AudioCallController extends GetxController {
         clientRoleType: ClientRoleType.clientRoleBroadcaster,
       ),
     );
-    update();
-    Get.forceAppUpdate();
+    // Отложенное обновление UI после завершения построения
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      update();
+      Get.forceAppUpdate();
+    });
   }
 
   //speaker mute - unMute

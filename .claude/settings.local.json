@@ -18,7 +18,11 @@
       "Read(//d//**)",
       "Bash(for file in lib/controllers/app_pages_controllers/video_call_controller.dart lib/controllers/app_pages_controllers/audio_call_controller.dart lib/controllers/app_pages_controllers/broadcast_chat_controller.dart lib/controllers/bottom_controllers/dashboard_controller.dart)",
       "Bash(do echo \"=== $file ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(adb logcat:*)",
+      "Bash(adb devices:*)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter pub get:*)"
     ],
     "deny": [],
     "ask": []

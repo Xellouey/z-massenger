@@ -125,33 +125,78 @@ class PickupBody extends StatelessWidget {
           ).inkWell(onTap: () async {
             // Stop vibration when call is accepted
             await Vibration.cancel();
-            final permissionCtrl =
-            Get.isRegistered<PermissionHandlerController>()
-                ? Get.find<PermissionHandlerController>()
-                : Get.put(PermissionHandlerController());
-            bool hasPermissions =
-            await permissionCtrl.getCameraMicrophonePermissions();
-            if (!hasPermissions) {
-              log('Permissions not granted for call');
-              Get.snackbar(
-                'Permissions Required',
-                'Please enable camera and microphone permissions.',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-              return;
-            }
-            await cameraController?.dispose();
-            var data = {
-              'channelName': call!.channelId,
-              'call': call,
-              'token': call!.agoraToken ?? '',
-            };
-            Get.toNamed(
-              call!.isVideoCall == true
-                  ? routeName.videoCall
-                  : routeName.audioCall,
-              arguments: data,
+
+            // Показываем индикатор загрузки
+            Get.dialog(
+              const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+              barrierDismissible: false,
             );
+
+            try {
+              final permissionCtrl =
+              Get.isRegistered<PermissionHandlerController>()
+                  ? Get.find<PermissionHandlerController>()
+                  : Get.put(PermissionHandlerController());
+
+              log('📞 Requesting permissions for call...');
+              bool hasPermissions =
+              await permissionCtrl.getCameraMicrophonePermissions();
+
+              if (!hasPermissions) {
+                log('❌ Permissions not granted for call');
+                Get.back(); // Закрываем индикатор
+                Get.snackbar(
+                  'Разрешения необходимы',
+                  'Пожалуйста, разрешите доступ к камере и микрофону.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: appCtrl.appTheme.redColor,
+                  colorText: appCtrl.appTheme.white,
+                  duration: const Duration(seconds: 3),
+                );
+                return;
+              }
+
+              log('✅ Permissions granted, accepting call...');
+
+              await cameraController?.dispose();
+
+              var data = {
+                'channelName': call!.channelId,
+                'call': call,
+                'token': call!.agoraToken ?? '',
+              };
+
+              // Закрываем индикатор загрузки
+              Get.back();
+
+              log('✅ Opening ${call!.isVideoCall == true ? "video" : "audio"} call screen');
+
+              Get.toNamed(
+                call!.isVideoCall == true
+                    ? routeName.videoCall
+                    : routeName.audioCall,
+                arguments: data,
+              );
+            } catch (e, stackTrace) {
+              log('❌ Error accepting call: $e');
+              log('Stack trace: $stackTrace');
+
+              // Закрываем индикатор загрузки
+              if (Get.isDialogOpen == true) {
+                Get.back();
+              }
+
+              Get.snackbar(
+                'Ошибка',
+                'Не удалось принять звонок. Попробуйте еще раз.',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: appCtrl.appTheme.redColor,
+                colorText: appCtrl.appTheme.white,
+                duration: const Duration(seconds: 3),
+              );
+            }
           }),
         ],
       ),

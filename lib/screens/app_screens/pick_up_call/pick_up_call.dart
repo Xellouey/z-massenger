@@ -51,9 +51,13 @@ class _PickupLayoutState extends State<PickupLayout>
       final permissionCtrl = Get.isRegistered<PermissionHandlerController>()
           ? Get.find<PermissionHandlerController>()
           : Get.put(PermissionHandlerController());
-      bool hasPermission = (await permissionCtrl.getCameraPermission()) as bool;
-      if (!hasPermission) {
-        log('Camera permission denied');
+
+      // Исправлено: getCameraPermission возвращает PermissionStatus, а не bool
+      final cameraPermissionStatus = await permissionCtrl.getCameraPermission();
+      log('Camera permission status: $cameraPermissionStatus');
+
+      if (cameraPermissionStatus != PermissionStatus.granted) {
+        log('Camera permission denied: $cameraPermissionStatus');
         return;
       }
 
@@ -64,6 +68,7 @@ class _PickupLayoutState extends State<PickupLayout>
       }
       isCameraInitialized = true;
       if (mounted) setState(() {});
+      log('Camera initialized successfully: ${cameras.length} cameras found');
     } catch (e) {
       log('Error setting up camera: $e');
     }

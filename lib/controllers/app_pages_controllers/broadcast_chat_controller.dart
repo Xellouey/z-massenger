@@ -105,7 +105,10 @@ class BroadcastChatController extends GetxController {
     totalUser = pData.length;
 
     textEditingController.addListener(() {
-      update();
+      // Отложенное обновление UI после завершения построения
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        update();
+      });
     });
 
     for (var i = 0; i < pData.length; i++) {
@@ -552,9 +555,10 @@ class BroadcastChatController extends GetxController {
               userData["id"],
               isBroadcast: true)
               .then((value) async {
+            // FIXED: receiverId should be userData["id"] (sender), not element.value["id"]
             await ChatMessageApi().saveMessageInUserCollection(
               element.value["id"],
-              element.value["id"],
+              userData["id"],
               element.value["chatId"],
               content,
               userData["id"],
@@ -580,9 +584,10 @@ class BroadcastChatController extends GetxController {
               .then((value) async {
             newpData.add(element.value);
             update();
+            // FIXED: receiverId should be userData["id"] (sender), not element.value["id"]
             await ChatMessageApi().saveMessageInUserCollection(
               element.value["id"],
-              element.value["id"],
+              userData["id"],
               element.value["chatId"],
               content,
               userData["id"],

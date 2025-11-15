@@ -956,7 +956,8 @@ class ChatController extends GetxController {
       if (allData["isBlock"] != true) {
         await ChatMessageApi().saveMessageInUserCollection(userData["id"], pId,
             newChatId, encrypted, userData["id"], pName, type);
-        await ChatMessageApi().saveMessageInUserCollection(pId, pId, newChatId,
+        // FIXED: receiverId should be userData["id"] (sender), not pId
+        await ChatMessageApi().saveMessageInUserCollection(pId, userData["id"], newChatId,
             encrypted, userData["id"], userData["name"], type);
       }
       update();
@@ -1043,7 +1044,8 @@ class ChatController extends GetxController {
         update();
         await ChatMessageApi().saveMessageInUserCollection(userData["id"], pId,
             newChatId, encrypted, userData["id"], pName, type);
-        await ChatMessageApi().saveMessageInUserCollection(pId, pId, newChatId,
+        // FIXED: receiverId should be userData["id"] (sender), not pId
+        await ChatMessageApi().saveMessageInUserCollection(pId, userData["id"], newChatId,
             encrypted, userData["id"], userData["name"], type);
         update();
         Get.forceAppUpdate();
@@ -1234,7 +1236,8 @@ class ChatController extends GetxController {
           pName,
           type,
         );
-        await ChatMessageApi().saveMessageInUserCollection(pId, pId, chatId,
+        // FIXED: receiverId should be userData["id"] (sender), not pId
+        await ChatMessageApi().saveMessageInUserCollection(pId, userData["id"], chatId,
             encrypted, userData["id"], userData["name"], type);
       }
       update();
@@ -1314,7 +1317,8 @@ class ChatController extends GetxController {
         update();
         await ChatMessageApi().saveMessageInUserCollection(userData["id"], pId,
             newChatId, encrypted, userData["id"], pName, type);
-        await ChatMessageApi().saveMessageInUserCollection(pId, pId, newChatId,
+        // FIXED: receiverId should be userData["id"] (sender), not pId
+        await ChatMessageApi().saveMessageInUserCollection(pId, userData["id"], newChatId,
             encrypted, userData["id"], userData["name"], type);
         update();
         Get.forceAppUpdate();

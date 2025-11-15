@@ -123,9 +123,10 @@ class ForwardController extends GetxController {
         });
 
         // Save in receiver's user collection
+        // FIXED: receiverId should be appCtrl.user["id"] (sender), not sendTo
         await ChatMessageApi().saveMessageInUserCollection(
           sendTo,
-          sendTo,
+          appCtrl.user["id"],
           id,
           content,
           appCtrl.user["id"],

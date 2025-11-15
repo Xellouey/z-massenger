@@ -1,4 +1,71 @@
 # CLAUDE.md
+# Debugging and Error Analysis Protocol
+
+## CRITICAL RULE: Analysis-First Approach
+
+When investigating bugs or errors, you MUST follow this strict sequence:
+
+### Phase 1: Investigation (NO CODE CHANGES)
+1. **Read, Don't Preview**: Always read files completely, never use `head` or partial reads
+2. **Breadth-First Search**: Find ALL related files before diving deep
+3. **Dependency Mapping**: Trace all imports, exports, and function calls
+4. **Historical Context**: Check git history for recent changes in affected areas
+5. **Test Coverage**: Review existing tests related to the error
+
+### Phase 2: Hypothesis Generation
+- Generate minimum 7-10 hypotheses about root causes
+- Use "5 Whys" technique for each hypothesis
+- Document evidence for and against each hypothesis
+- Create a scratchpad document to track reasoning
+
+### Phase 3: Root Cause Analysis
+- Systematically evaluate each hypothesis
+- Use process of elimination with evidence from code
+- Distinguish between symptoms and actual root causes
+- Identify patterns across multiple files
+
+### Phase 4: Impact Assessment
+- Map all affected components
+- Identify potential side effects of changes
+- Check for similar issues elsewhere in codebase
+- Document edge cases and potential regressions
+
+### Phase 5: Report Creation
+Create a comprehensive analysis document before ANY code changes:
+- ERROR_ANALYSIS.md with complete findings
+- COMPONENT_MAP.md showing relationships
+- ROOT_CAUSE.md with justification
+- RECOMMENDATIONS.md with approach (not implementation)
+
+## Workflow Commands
+When I say "Analyze this error", follow the complete protocol above.
+When I say "Now fix it", ONLY THEN proceed with implementation.
+
+## Anti-Patterns to Avoid
+- ❌ Don't jump to solutions after finding first issue
+- ❌ Don't preview files - read them completely
+- ❌ Don't assume one fix solves all problems
+- ❌ Don't make changes without full impact assessment
+- ❌ Don't skip documentation of findings
+
+## Code Reading Strategy
+When exploring codebase:
+1. Start with the error stack trace
+2. Read each file in the trace completely
+3. Find all imports/dependencies
+4. Read those files completely too
+5. Build mental model before proposing changes
+
+## Documentation Requirements
+Every debugging session must produce:
+- Detailed analysis document
+- Component relationship diagram (text-based)
+- List of all hypotheses considered
+- Evidence for root cause determination
+- Risk assessment for potential fixes
+
+## Response Format for Bugs
+When I report a bug, structure your response as:
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -17,7 +84,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Tech Stack:**
 - **Frontend**: Flutter SDK 3.4.4+ (Dart)
 - **Backend**: Firebase (Firestore, Auth, Storage, Cloud Functions, Messaging, Remote Config, App Check)
-- **Calls**: Agora RTC Engine
+- **Calls**: Agora RTC Engi'стойne
 - **State Management**: GetX (primary) + Provider (specific features)
 - **Local Storage**: GetStorage, SharedPreferences
 - **In-App Purchases**: RevenueCat

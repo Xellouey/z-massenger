@@ -252,6 +252,14 @@ class DashboardController extends GetxController
     }
     
     firebaseCtrl.setIsActive();
+
+    // Clean up old/stale calls from Firestore
+    await _cleanupOldCalls();
+
+    // CLEANUP DUPLICATE CHATS - Run this ONCE after update, then comment out
+    // Uncomment the line below to clean up existing duplicate chats:
+    // await cleanupDuplicateChats();
+
     update();
     bottomNavLists = appArray.bottomNavyList;
     await Future.delayed(DurationsClass.s2);
@@ -391,6 +399,151 @@ class DashboardController extends GetxController
       isLongPress = false;
       selectedChat = [];
       update();
+    }
+  }
+
+  // Clean up old/stale calls from Firestore
+  // This prevents old call notifications from appearing on app launch
+  Future<void> _cleanupOldCalls() async {
+    try {
+      if (appCtrl.user == null || appCtrl.user["id"] == null) {
+        log("⚠️ Cannot cleanup calls: user not logged in");
+        return;
+      }
+
+      final userId = appCtrl.user["id"];
+      log("🧹 Cleaning up old calls for user: $userId");
+
+      // Get all active calls from 'calling' collection
+      final callingSnapshot = await FirebaseFirestore.instance
+          .collection(collectionName.calls)
+          .doc(userId)
+          .collection(collectionName.calling)
+          .get();
+
+      if (callingSnapshot.docs.isEmpty) {
+        log("✅ No old calls to cleanup");
+        return;
+      }
+
+      log("Found ${callingSnapshot.docs.length} old call(s) to cleanup");
+
+      // Delete all old calls in a batch
+      final batch = FirebaseFirestore.instance.batch();
+      int deletedCount = 0;
+
+      for (var doc in callingSnapshot.docs) {
+        final data = doc.data();
+        final timestamp = data['timestamp'];
+        final now = DateTime.now().millisecondsSinceEpoch;
+
+        // Delete calls older than 1 minute (60000 ms)
+        // This ensures we don't delete actual incoming calls
+        if (timestamp != null && (now - timestamp) > 60000) {
+          log("Deleting old call from ${data['callerName']} (timestamp: $timestamp)");
+          batch.delete(doc.reference);
+          deletedCount++;
+        } else {
+          log("⚠️ Keeping recent call from ${data['callerName']} (timestamp: $timestamp)");
+        }
+      }
+
+      if (deletedCount > 0) {
+        await batch.commit();
+        log("✅ Successfully deleted $deletedCount old call(s)");
+      } else {
+        log("ℹ️ No old calls found to delete (all calls are recent)");
+      }
+
+    } catch (e, stackTrace) {
+      log("❌ Error cleaning up old calls: $e");
+      log("Stack trace: $stackTrace");
+    }
+  }
+
+  // Clean up duplicate chats (run once after fixing the duplicate chat bug)
+  Future<void> cleanupDuplicateChats() async {
+    try {
+      if (appCtrl.user == null || appCtrl.user["id"] == null) {
+        log("⚠️ Cannot cleanup chats: user not logged in");
+        return;
+      }
+
+      var userId = appCtrl.user["id"];
+      log("🧹 Starting duplicate chat cleanup for user: $userId");
+
+      var chatsSnapshot = await FirebaseFirestore.instance
+          .collection(collectionName.users)
+          .doc(userId)
+          .collection(collectionName.chats)
+          .where("isOneToOne", isEqualTo: true)
+          .get();
+
+      if (chatsSnapshot.docs.isEmpty) {
+        log("ℹ️ No chats found to check");
+        return;
+      }
+
+      Map<String, List<DocumentSnapshot>> chatsByUser = {};
+
+      // Group chats by other participant
+      for (var doc in chatsSnapshot.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+
+        // Determine the other participant in the chat
+        String? otherUserId;
+        if (data["senderId"] == userId) {
+          otherUserId = data["receiverId"];
+        } else if (data["receiverId"] == userId) {
+          otherUserId = data["senderId"];
+        }
+
+        if (otherUserId == null || otherUserId.isEmpty) {
+          log("⚠️ Skipping chat with invalid participant data: ${doc.id}");
+          continue;
+        }
+
+        if (!chatsByUser.containsKey(otherUserId)) {
+          chatsByUser[otherUserId] = [];
+        }
+        chatsByUser[otherUserId]!.add(doc);
+      }
+
+      // Delete duplicates, keeping the most recent one
+      int deletedCount = 0;
+      for (var entry in chatsByUser.entries) {
+        if (entry.value.length > 1) {
+          log("Found ${entry.value.length} duplicate chats for user: ${entry.key}");
+
+          // Sort by updateStamp (most recent first)
+          entry.value.sort((a, b) {
+            var dataA = a.data() as Map<String, dynamic>;
+            var dataB = b.data() as Map<String, dynamic>;
+            int stampA = int.tryParse(dataA["updateStamp"] ?? "0") ?? 0;
+            int stampB = int.tryParse(dataB["updateStamp"] ?? "0") ?? 0;
+            return stampB.compareTo(stampA); // Descending order
+          });
+
+          // Delete all except the first one (most recent)
+          for (int i = 1; i < entry.value.length; i++) {
+            await entry.value[i].reference.delete();
+            deletedCount++;
+            log("Deleted duplicate chat: ${entry.value[i].id}");
+          }
+        }
+      }
+
+      log("✅ Cleanup complete: deleted $deletedCount duplicate chat(s)");
+
+      if (deletedCount > 0) {
+        Fluttertoast.showToast(
+          msg: "Удалено дубликатов чатов: $deletedCount",
+          toastLength: Toast.LENGTH_LONG,
+        );
+      }
+    } catch (e, stackTrace) {
+      log("❌ Error cleaning up duplicate chats: $e");
+      log("Stack trace: $stackTrace");
     }
   }
 
