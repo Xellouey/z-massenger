@@ -684,10 +684,49 @@ class AudioCallController extends GetxController {
     }
   }
 
+  // Navigate to chat with the other participant
+  void _navigateToChat() {
+    if (call == null || userData == null || userData["id"] == null) {
+      Get.back();
+      return;
+    }
+
+    try {
+      // Determine who is the "other" user in the call
+      final bool isICaller = call!.callerId == userData["id"];
+      final String otherUserId = isICaller ? (call!.receiverId ?? '') : (call!.callerId ?? '');
+      final String otherUserName = isICaller ? (call!.receiverName ?? 'Unknown') : (call!.callerName ?? 'Unknown');
+      final String otherUserPic = isICaller ? (call!.receiverPic ?? '') : (call!.callerPic ?? '');
+
+      // Create UserContactModel for the other participant
+      UserContactModel userContact = UserContactModel(
+        username: otherUserName,
+        uid: otherUserId,
+        phoneNumber: '',
+        image: otherUserPic,
+        isRegister: true,
+      );
+
+      // Navigate to chat layout
+      // Using chatId: '0' will create a new chat if one doesn't exist
+      Get.offNamedUntil(
+        routeName.chatLayout,
+        (route) => route.settings.name == routeName.dashboard,
+        arguments: {
+          'chatId': '0',
+          'data': userContact,
+        },
+      );
+    } catch (e) {
+      log('Error navigating to chat: $e');
+      Get.back();
+    }
+  }
+
   //end call
   Future<void> onCallEnd(BuildContext context) async {
     if (_isEnding) {
-      _closeCallView(context);
+      _navigateToChat();
       return;
     }
 
@@ -695,7 +734,7 @@ class AudioCallController extends GetxController {
     isAlreadyEnded = true;
     log("endCall1");
     await _dispose();
-    _closeCallView(context);
+
     DateTime now = DateTime.now();
     if (remoteUId != null) {
       FirebaseFirestore.instance
@@ -760,7 +799,7 @@ class AudioCallController extends GetxController {
     log("endCall");
     WakelockPlus.disable();
     stopTimer();
-    _closeCallView(context);
+    _navigateToChat();
   }
 
   @override

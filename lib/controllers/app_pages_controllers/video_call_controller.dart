@@ -920,6 +920,45 @@ class VideoCallController extends GetxController {
     }
   }
 
+  // Navigate to chat with the other participant
+  void _navigateToChat() {
+    if (call == null || userData == null || userData["id"] == null) {
+      Get.back();
+      return;
+    }
+
+    try {
+      // Determine who is the "other" user in the call
+      final bool isICaller = call!.callerId == userData["id"];
+      final String otherUserId = isICaller ? (call!.receiverId ?? '') : (call!.callerId ?? '');
+      final String otherUserName = isICaller ? (call!.receiverName ?? 'Unknown') : (call!.callerName ?? 'Unknown');
+      final String otherUserPic = isICaller ? (call!.receiverPic ?? '') : (call!.callerPic ?? '');
+
+      // Create UserContactModel for the other participant
+      UserContactModel userContact = UserContactModel(
+        username: otherUserName,
+        uid: otherUserId,
+        phoneNumber: '',
+        image: otherUserPic,
+        isRegister: true,
+      );
+
+      // Navigate to chat layout
+      // Using chatId: '0' will create a new chat if one doesn't exist
+      Get.offNamedUntil(
+        routeName.chatLayout,
+        (route) => route.settings.name == routeName.dashboard,
+        arguments: {
+          'chatId': '0',
+          'data': userContact,
+        },
+      );
+    } catch (e) {
+      log('Error navigating to chat: $e');
+      Get.back();
+    }
+  }
+
   Future<void> onCallEnd(BuildContext context) async {
     if (call == null) return;
     stopTimer();
@@ -934,10 +973,9 @@ class VideoCallController extends GetxController {
     _dispose();
     WakelockPlus.disable();
 
+    _navigateToChat();
 
-    Get.back();
-
-    log('Call ended and navigated back');
+    log('Call ended and navigated to chat');
   }
 
 }

@@ -136,22 +136,17 @@ class _PickupLayoutState extends State<PickupLayout>
         final callData =
         snapshot.data!.docs[0].data() as Map<String, dynamic>;
         log('Call data: $callData');
-        if (!snapshot.hasData ||
-            snapshot.data!.docs.isEmpty ||
-            isCallEnded) {
+
+        // Check if call has ended status - prevents flash of pickup screen
+        if (callData['status'] == 'ended') {
           if (isVibrating) {
             _stopVibration();
           }
-          return widget.scaffold;
-        }
-        if (callData['status'] == 'ended') {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!isCallEnded) {
             isCallEnded = true;
             cameraController?.dispose();
             cameraController = null;
-            _stopVibration();
-            Get.back();
-          });
+          }
           return widget.scaffold;
         }
 
